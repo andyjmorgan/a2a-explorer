@@ -1,121 +1,117 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useCallback } from "react";
+import { ArrowLeft, Bot } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { ConnectPanel } from "@/components/ConnectPanel";
+import { AuthPrompt } from "@/components/AuthPrompt";
+import { AgentCardView } from "@/components/AgentCardView";
+import { ChatPanel } from "@/components/ChatPanel";
+import { A2AClient } from "@/lib/a2a-client";
+import type { AgentCard, AuthConfig } from "@/types/a2a";
 
-function App() {
-  const [count, setCount] = useState(0)
+type AppState =
+  | { step: "connect" }
+  | { step: "auth"; url: string; card: AgentCard; client: A2AClient }
+  | { step: "chat"; url: string; card: AgentCard; client: A2AClient };
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+function cardRequiresAuth(card: AgentCard): boolean {
+  if (!card.securitySchemes) return false;
+  return Object.keys(card.securitySchemes).length > 0;
 }
 
-export default App
+export default function App() {
+  const [state, setState] = useState<AppState>({ step: "connect" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDiscover = useCallback(async (url: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const client = new A2AClient(url);
+      const card = await client.discoverCard();
+
+      if (cardRequiresAuth(card)) {
+        setState({ step: "auth", url, card, client });
+      } else {
+        setState({ step: "chat", url, card, client });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to discover agent");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleAuth = useCallback(
+    (auth: AuthConfig) => {
+      if (state.step !== "auth") return;
+      state.client.setAuth(auth);
+      setState({ step: "chat", url: state.url, card: state.card, client: state.client });
+    },
+    [state]
+  );
+
+  const handleDisconnect = useCallback(() => {
+    setState({ step: "connect" });
+    setError(null);
+  }, []);
+
+  if (state.step === "connect") {
+    return (
+      <div className="min-h-screen relative">
+        <div className="absolute top-4 right-4 z-10">
+          <ThemeToggle />
+        </div>
+        <ConnectPanel onDiscover={handleDiscover} loading={loading} error={error} />
+      </div>
+    );
+  }
+
+  if (state.step === "auth") {
+    return (
+      <div className="min-h-screen relative">
+        <div className="absolute top-4 right-4 z-10">
+          <ThemeToggle />
+        </div>
+        <AuthPrompt card={state.card} onSubmit={handleAuth} onBack={handleDisconnect} />
+      </div>
+    );
+  }
+
+  const { card, client } = state;
+
+  return (
+    <div className="h-screen flex flex-col">
+      <header className="h-12 border-b border-border/50 flex items-center px-4 gap-3 shrink-0 bg-card/80 backdrop-blur-sm sticky top-0 z-30">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleDisconnect}
+          className="h-8 w-8 rounded-lg shrink-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Bot className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-semibold truncate">{card.name}</span>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+            v{card.version}
+          </Badge>
+        </div>
+        <ThemeToggle />
+      </header>
+
+      <main className="flex-1 min-h-0 flex flex-col max-w-3xl mx-auto w-full">
+        <div className="px-6 pt-4 shrink-0">
+          <AgentCardView card={card} />
+        </div>
+        <div className="flex-1 min-h-0">
+          <ChatPanel client={client} card={card} />
+        </div>
+      </main>
+    </div>
+  );
+}
