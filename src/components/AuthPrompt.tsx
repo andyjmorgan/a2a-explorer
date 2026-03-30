@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Key, Shield, ArrowLeft } from "lucide-react";
+import { Key, Shield, ArrowLeft, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -115,36 +115,35 @@ export function AuthPrompt({ card, onSubmit, onBack }: AuthPromptProps) {
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
-      <Card className="w-full max-w-lg border-border/50 bg-card/80 backdrop-blur-sm shadow-xl">
+      <Card className="w-full max-w-lg border-border/50 bg-card/80 backdrop-blur-sm shadow-xl shadow-amber-500/5">
         <CardContent className="pt-8 pb-8 px-8 space-y-6">
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 mb-2">
-              <Shield className="h-7 w-7 text-amber-500" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-2">
+              <Lock className="h-7 w-7 text-white" />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Authentication Required</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Knock knock</h1>
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{card.name}</span> requires authentication to interact
+              <span className="font-medium text-foreground">{card.name}</span> wants to know who you are
             </p>
           </div>
 
-          <div className="space-y-3">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Security Schemes
-            </div>
+          <div className="space-y-2">
             {schemeEntries.map(([name, scheme]) => {
               const info = describeScheme(name, scheme);
               return (
                 <div
                   key={name}
-                  className="flex items-center gap-2 p-3 rounded-xl bg-secondary/50 border border-border/30"
+                  className="flex items-center gap-2.5 p-3 rounded-xl bg-secondary/50 border border-border/30"
                 >
-                  <Key className="h-4 w-4 text-primary shrink-0" />
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
+                    <Key className="h-3.5 w-3.5 text-white" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{name}</span>
                       <Badge variant="outline" className="text-[10px]">{info.type}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">{info.detail}</p>
+                    <p className="text-[10px] text-muted-foreground">{info.detail}</p>
                   </div>
                 </div>
               );
@@ -186,10 +185,10 @@ export function AuthPrompt({ card, onSubmit, onBack }: AuthPromptProps) {
             <Button
               onClick={handleSubmit}
               disabled={!headerValue.trim()}
-              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all"
+              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-cyan-500/25 text-white transition-all duration-200"
             >
-              <Key className="h-4 w-4 mr-2" />
-              Authenticate & Connect
+              <Shield className="h-4 w-4 mr-2" />
+              Let me in
             </Button>
           </div>
         </CardContent>

@@ -94,10 +94,12 @@ export default function App() {
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Bot className="h-4 w-4 text-primary shrink-0" />
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-sm shadow-cyan-500/20 shrink-0">
+            <Bot className="h-3.5 w-3.5 text-white" />
+          </div>
           <span className="text-sm font-semibold truncate">{card.name}</span>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-primary/20 text-primary">
             v{card.version}
           </Badge>
         </div>

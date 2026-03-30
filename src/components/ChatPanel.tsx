@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, RotateCcw, AlertCircle } from "lucide-react";
+import { Send, RotateCcw, AlertCircle, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -181,7 +181,7 @@ export function ChatPanel({ client, card }: ChatPanelProps) {
   };
 
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto">
+    <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-2 shrink-0">
         <div className="flex items-center gap-2">
           {taskState && (
@@ -191,7 +191,7 @@ export function ChatPanel({ client, card }: ChatPanelProps) {
                 taskState === "completed"
                   ? "border-emerald-500/30 text-emerald-500"
                   : taskState === "working"
-                    ? "border-primary/30 text-primary"
+                    ? "border-cyan-500/30 text-cyan-500"
                     : taskState === "failed"
                       ? "border-destructive/30 text-destructive"
                       : taskState === "input-required"
@@ -211,7 +211,7 @@ export function ChatPanel({ client, card }: ChatPanelProps) {
             className="h-7 text-xs text-muted-foreground hover:text-foreground"
           >
             <RotateCcw className="h-3 w-3 mr-1" />
-            Reset
+            Start over
           </Button>
         )}
       </div>
@@ -220,17 +220,26 @@ export function ChatPanel({ client, card }: ChatPanelProps) {
         <div className="py-6 space-y-6">
           {entries.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-sm text-muted-foreground">
-                Send a message to start chatting with{" "}
-                <span className="font-medium text-foreground">{card.name}</span>
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <MessageSquare className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground mb-1">
+                Ready when you are
+              </p>
+              <p className="text-xs text-muted-foreground/60 max-w-xs">
+                Ask <span className="text-primary">{card.name}</span> anything
+                {supportsStreaming && " — responses will stream in real-time"}
               </p>
               {card.skills.length > 0 && card.skills[0].examples && (
-                <div className="mt-4 space-y-2">
+                <div className="mt-5 space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium">
+                    Try something like
+                  </p>
                   {card.skills[0].examples.slice(0, 3).map((ex, i) => (
                     <button
                       key={i}
                       onClick={() => setInput(ex)}
-                      className="block text-xs text-primary/80 hover:text-primary px-3 py-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors"
+                      className="block text-xs text-primary/70 hover:text-primary px-3 py-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 hover:shadow-sm transition-all duration-200 mx-auto"
                     >
                       {ex}
                     </button>
@@ -251,9 +260,12 @@ export function ChatPanel({ client, card }: ChatPanelProps) {
           )}
 
           {error && (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
               <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-              <p className="text-sm text-destructive">{error}</p>
+              <div>
+                <p className="text-sm font-medium text-destructive">Something went sideways</p>
+                <p className="text-xs text-destructive/80 mt-0.5">{error}</p>
+              </div>
             </div>
           )}
         </div>
@@ -266,7 +278,7 @@ export function ChatPanel({ client, card }: ChatPanelProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder="Say something interesting..."
             disabled={sending}
             className="min-h-[44px] max-h-[120px] rounded-xl bg-secondary/50 border-border/50 focus:border-primary focus:ring-primary/20 resize-none text-sm"
             rows={1}
@@ -275,11 +287,15 @@ export function ChatPanel({ client, card }: ChatPanelProps) {
             onClick={handleSend}
             disabled={sending || !input.trim()}
             size="icon"
-            className="h-[44px] w-[44px] rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all shrink-0"
+            className="h-[44px] w-[44px] rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-cyan-500/25 text-white transition-all duration-200 shrink-0"
           >
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        <p className="text-[10px] text-muted-foreground/30 text-center mt-2">
+          {supportsStreaming ? "Streaming" : "Blocking"} mode
+          {contextId && <span> &middot; Context: {contextId.slice(0, 8)}...</span>}
+        </p>
       </div>
     </div>
   );
