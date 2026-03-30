@@ -177,7 +177,7 @@ export function AuthPrompt({ card, onSubmit, onBack }: AuthPromptProps) {
             <Button
               variant="outline"
               onClick={onBack}
-              className="rounded-xl"
+              className="h-11 rounded-xl"
             >
               <ArrowLeft className="h-4 w-4 mr-1.5" />
               Back
