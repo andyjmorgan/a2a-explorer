@@ -1,28 +1,36 @@
 {
   "name": "a2a-explorer",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:server": "node --loader ts-node/esm server/index.ts",
+    "start": "node --import tsx server/index.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
     "@fontsource-variable/geist": "^5.2.8",
+    "@hono/node-server": "^1.19.12",
     "@tailwindcss/vite": "^4.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "hono": "^4.12.9",
     "lucide-react": "^1.7.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "shadcn": "^4.1.1",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
+    "tsx": "^4.21.0",
     "tw-animate-css": "^1.4.0",
     "uuid": "^13.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
