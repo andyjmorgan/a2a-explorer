@@ -1,6 +1,19 @@
-# A2A Explorer
+<p align="center">
+  <img src="public/donkeywork.png" alt="A2A Explorer" width="80" />
+</p>
 
-A web-based test client for the [A2A (Agent-to-Agent) protocol](https://a2a-protocol.org) (v0.3.0). Discovers agent cards, detects authentication requirements, and provides a chat interface for interacting with A2A agents.
+<h1 align="center">A2A Explorer</h1>
+
+<p align="center">
+  A web-based test client for the <a href="https://a2a-protocol.org">A2A (Agent-to-Agent) protocol</a> (v0.3.0).<br/>
+  Discover agent cards, detect authentication, and chat with any A2A agent.
+</p>
+
+<p align="center">
+  <a href="https://a2a-explorer.donkeywork.dev">Try the live playground</a>
+</p>
+
+---
 
 ## Features
 
