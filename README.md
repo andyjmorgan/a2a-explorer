@@ -52,17 +52,6 @@ docker run -p 3000:3000 a2a-explorer
 
 Images are published to `ghcr.io/andyjmorgan/a2a-explorer` on every push to main.
 
-## Proxy security
-
-The `/a2a-proxy` endpoint is locked down for public hosting:
-
-- HTTPS targets only
-- Private/internal IPs blocked (RFC1918, loopback, link-local)
-- 60 requests/min per client IP
-- 30s request timeout, no redirect following
-- 10MB response size cap
-- Sensitive headers stripped (`Set-Cookie`, `Server`)
-
 ## Configuration
 
 Dev-only environment variables (`.env`, baked at build time):
