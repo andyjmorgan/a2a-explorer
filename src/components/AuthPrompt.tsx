@@ -114,7 +114,7 @@ export function AuthPrompt({ card, onSubmit, onBack }: AuthPromptProps) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
+    <div className="flex items-center justify-center h-full p-4">
       <Card className="w-full max-w-lg border-border/50 bg-card/80 backdrop-blur-sm shadow-xl shadow-amber-500/5">
         <CardContent className="pt-8 pb-8 px-8 space-y-6">
           <div className="text-center space-y-2">
