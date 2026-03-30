@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/donkeywork.png" alt="A2A Explorer" width="80" />
+  <img src="a2a-explorer.png" alt="A2A Explorer" width="200" />
 </p>
 
 <h1 align="center">A2A Explorer</h1>
