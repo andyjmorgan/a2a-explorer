@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DonkeyWork.A2AExplorer.Agents.Core</RootNamespace>
+    <AssemblyName>DonkeyWork.A2AExplorer.Agents.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="A2A" Version="1.0.0-preview2" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DonkeyWork.A2AExplorer.Agents.Contracts\DonkeyWork.A2AExplorer.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\..\common\DonkeyWork.A2AExplorer.Persistence\DonkeyWork.A2AExplorer.Persistence.csproj" />
+    <ProjectReference Include="..\..\identity\DonkeyWork.A2AExplorer.Identity.Contracts\DonkeyWork.A2AExplorer.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

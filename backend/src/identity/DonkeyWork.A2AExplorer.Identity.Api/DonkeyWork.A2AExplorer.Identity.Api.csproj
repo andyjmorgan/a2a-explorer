@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DonkeyWork.A2AExplorer.Identity.Api</RootNamespace>
+    <AssemblyName>DonkeyWork.A2AExplorer.Identity.Api</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Mvc" Version="8.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DonkeyWork.A2AExplorer.Identity.Contracts\DonkeyWork.A2AExplorer.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\DonkeyWork.A2AExplorer.Identity.Core\DonkeyWork.A2AExplorer.Identity.Core.csproj" />
+    <ProjectReference Include="..\..\common\DonkeyWork.A2AExplorer.Persistence\DonkeyWork.A2AExplorer.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

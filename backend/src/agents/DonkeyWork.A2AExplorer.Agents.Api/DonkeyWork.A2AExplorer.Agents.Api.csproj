@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DonkeyWork.A2AExplorer.Agents.Api</RootNamespace>
+    <AssemblyName>DonkeyWork.A2AExplorer.Agents.Api</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Mvc" Version="8.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DonkeyWork.A2AExplorer.Agents.Contracts\DonkeyWork.A2AExplorer.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\DonkeyWork.A2AExplorer.Agents.Core\DonkeyWork.A2AExplorer.Agents.Core.csproj" />
+    <ProjectReference Include="..\..\identity\DonkeyWork.A2AExplorer.Identity.Contracts\DonkeyWork.A2AExplorer.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
