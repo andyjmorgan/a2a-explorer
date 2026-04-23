@@ -1,51 +1,49 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, RotateCcw, AlertCircle, MessageSquare } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertCircle, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { ChatMessage } from "./ChatMessage";
-import { PulseDots } from "./PulseDots";
-import type { A2AClient } from "@/lib/a2a-client";
-import type { AgentCard, Message, TaskState } from "@/types/a2a";
+import { MessageBubble } from "./MessageBubble";
+import { ArtifactView } from "./ArtifactView";
+import { a2aApi, ApiError } from "@/lib/api";
+import type { Message, Artifact, TaskState } from "@/types/a2a";
 
 interface ChatPanelProps {
-  client: A2AClient;
-  card: AgentCard;
+  agentId: string;
 }
 
-interface ChatEntry {
-  type: "message";
-  message: Message;
-}
+type Entry =
+  | { kind: "message"; message: Message }
+  | { kind: "artifact"; artifact: Artifact };
 
-export function ChatPanel({ client, card }: ChatPanelProps) {
-  const [entries, setEntries] = useState<ChatEntry[]>([]);
+export function ChatPanel({ agentId }: ChatPanelProps) {
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [taskState, setTaskState] = useState<TaskState | null>(null);
   const [contextId, setContextId] = useState<string | undefined>(undefined);
   const [taskId, setTaskId] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const scrollToBottom = useCallback(() => {
-    if (scrollRef.current) {
-      const viewport = scrollRef.current.querySelector("[data-radix-scroll-area-viewport]");
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
-    }
-  }, []);
+  // Reset whenever the selected agent changes.
+  useEffect(() => {
+    setEntries([]);
+    setInput("");
+    setTaskState(null);
+    setContextId(undefined);
+    setTaskId(undefined);
+    setError(null);
+    setSending(false);
+  }, [agentId]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [entries, sending, scrollToBottom]);
+    const viewport = scrollRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }, [entries, sending]);
 
-  const supportsStreaming = card.capabilities?.streaming === true;
-
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || sending) return;
 
@@ -53,250 +51,126 @@ export function ChatPanel({ client, card }: ChatPanelProps) {
       messageId: crypto.randomUUID(),
       role: "user",
       parts: [{ kind: "text", text }],
+      ...(contextId ? { contextId } : {}),
+      ...(taskId ? { taskId } : {}),
     };
-
-    setEntries((prev) => [...prev, { type: "message", message: userMessage }]);
+    setEntries((prev) => [...prev, { kind: "message", message: userMessage }]);
     setInput("");
     setSending(true);
     setError(null);
     setTaskState(null);
 
     try {
-      if (supportsStreaming) {
-        let agentText = "";
-        let currentTaskId = taskId;
-        let currentContextId = contextId;
+      const response = await a2aApi.sendMessage(agentId, {
+        message: userMessage,
+        configuration: { blocking: true },
+      });
 
-        for await (const event of client.sendStreamingMessage(text, contextId, taskId)) {
-          if (event.type === "task") {
-            currentTaskId = event.task.id;
-            currentContextId = event.task.contextId;
-            setTaskState(event.task.status.state);
-
-            if (event.task.status.message) {
-              setEntries((prev) => [
-                ...prev.filter((e) => e.message.messageId !== "streaming-agent-response"),
-                { type: "message", message: event.task.status.message! },
-              ]);
-              agentText = "";
-            }
-          } else if (event.type === "message") {
-            setEntries((prev) => [
-              ...prev.filter((e) => e.message.messageId !== "streaming-agent-response"),
-              { type: "message", message: event.message },
-            ]);
-            if (event.message.contextId) currentContextId = event.message.contextId;
-          } else if (event.type === "statusUpdate") {
-            setTaskState(event.statusUpdate.status.state);
-            if (event.statusUpdate.status.message) {
-              setEntries((prev) => [
-                ...prev.filter((e) => e.message.messageId !== "streaming-agent-response"),
-                { type: "message", message: event.statusUpdate.status.message! },
-              ]);
-            }
-          } else if (event.type === "artifactUpdate") {
-            const parts = event.artifactUpdate.artifact.parts;
-            const newText = parts
-              .filter((p) => p.kind === "text")
-              .map((p) => (p as { kind: "text"; text: string }).text)
-              .join("");
-
-            if (event.artifactUpdate.append) {
-              agentText += newText;
-            } else {
-              agentText = newText;
-            }
-
-            const streamMsg: Message = {
-              messageId: "streaming-agent-response",
-              role: "agent",
-              parts: [{ kind: "text", text: agentText }],
-            };
-
-            setEntries((prev) => {
-              const withoutStream = prev.filter((e) => e.message.messageId !== "streaming-agent-response");
-              return [...withoutStream, { type: "message", message: streamMsg }];
-            });
-          }
+      if (response.task) {
+        setContextId(response.task.contextId);
+        setTaskId(response.task.id);
+        setTaskState(response.task.status.state);
+        if (response.task.status.message) {
+          appendMessage(response.task.status.message);
         }
-
-        setTaskId(currentTaskId);
-        setContextId(currentContextId);
-      } else {
-        const result = await client.sendMessage(text, contextId, taskId);
-
-        if (result.task) {
-          setTaskId(result.task.id);
-          setContextId(result.task.contextId);
-          setTaskState(result.task.status.state);
-
-          if (result.task.status.message) {
-            setEntries((prev) => [...prev, { type: "message", message: result.task!.status.message! }]);
-          }
-
-          if (result.task.artifacts) {
-            for (const artifact of result.task.artifacts) {
-              const agentMsg: Message = {
-                messageId: crypto.randomUUID(),
-                role: "agent",
-                parts: artifact.parts,
-              };
-              setEntries((prev) => [...prev, { type: "message", message: agentMsg }]);
-            }
-          }
-
-          if (result.task.history) {
-            const agentMessages = result.task.history.filter((m) => m.role === "agent");
-            if (agentMessages.length > 0) {
-              const latestAgent = agentMessages[agentMessages.length - 1];
-              setEntries((prev) => [...prev, { type: "message", message: latestAgent }]);
-            }
-          }
-        } else if (result.message) {
-          setEntries((prev) => [...prev, { type: "message", message: result.message! }]);
-          if (result.message.contextId) setContextId(result.message.contextId);
-          if (result.message.taskId) setTaskId(result.message.taskId);
+        for (const artifact of response.task.artifacts ?? []) {
+          upsertArtifact(artifact);
         }
+      } else if (response.message) {
+        appendMessage(response.message);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send message");
+      setError(messageFromError(err));
     } finally {
       setSending(false);
     }
-  };
+  }, [agentId, contextId, input, sending, taskId]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const handleReset = () => {
-    setEntries([]);
-    setContextId(undefined);
-    setTaskId(undefined);
-    setTaskState(null);
-    setError(null);
-  };
+  function appendMessage(message: Message) {
+    setEntries((prev) => {
+      if (prev.some((e) => e.kind === "message" && e.message.messageId === message.messageId)) {
+        return prev;
+      }
+      return [...prev, { kind: "message", message }];
+    });
+  }
+
+  function upsertArtifact(artifact: Artifact) {
+    setEntries((prev) => {
+      const idx = prev.findIndex((e) => e.kind === "artifact" && e.artifact.artifactId === artifact.artifactId);
+      if (idx === -1) return [...prev, { kind: "artifact", artifact }];
+      const copy = [...prev];
+      copy[idx] = { kind: "artifact", artifact };
+      return copy;
+    });
+  }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-6 py-2 shrink-0">
-        <div className="flex items-center gap-2">
-          {taskState && (
-            <Badge
-              variant="outline"
-              className={`text-[10px] ${
-                taskState === "completed"
-                  ? "border-emerald-500/30 text-emerald-500"
-                  : taskState === "working"
-                    ? "border-cyan-500/30 text-cyan-500"
-                    : taskState === "failed"
-                      ? "border-destructive/30 text-destructive"
-                      : taskState === "input-required"
-                        ? "border-amber-500/30 text-amber-500"
-                        : ""
-              }`}
-            >
-              {taskState}
-            </Badge>
-          )}
-        </div>
-        {entries.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleReset}
-            className="h-7 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <RotateCcw className="h-3 w-3 mr-1" />
-            Start over
-          </Button>
-        )}
-      </div>
-
-      <ScrollArea ref={scrollRef} className="flex-1 px-6">
-        <div className="py-6 space-y-6">
-          {entries.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="rounded-full bg-muted p-4 mb-4">
-                <MessageSquare className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium text-foreground mb-1">
-                Ready when you are
-              </p>
-              <p className="text-xs text-muted-foreground/60 max-w-xs">
-                Ask <span className="text-primary">{card.name}</span> anything
-                {supportsStreaming && " — responses will stream in real-time"}
-              </p>
-              {card.skills.length > 0 && card.skills[0].examples && (
-                <div className="mt-5 space-y-1.5">
-                  <p className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium">
-                    Try something like
-                  </p>
-                  {card.skills[0].examples.slice(0, 3).map((ex, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setInput(ex)}
-                      className="block text-xs text-primary/70 hover:text-primary px-3 py-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 hover:shadow-sm transition-all duration-200 mx-auto"
-                    >
-                      {ex}
-                    </button>
-                  ))}
-                </div>
-              )}
+    <div className="flex flex-col h-full min-h-0">
+      <ScrollArea ref={scrollRef} className="flex-1 min-h-0 px-4 py-4">
+        <div className="max-w-3xl mx-auto space-y-4">
+          {entries.length === 0 && !sending && (
+            <div className="text-center text-xs text-muted-foreground py-16">
+              Say hi to your agent.
             </div>
           )}
-
-          {entries.map((entry, i) => (
-            <ChatMessage key={i} message={entry.message} />
-          ))}
-
+          {entries.map((entry, i) =>
+            entry.kind === "message" ? (
+              <MessageBubble key={`m-${i}`} message={entry.message} />
+            ) : (
+              <ArtifactView key={`a-${entry.artifact.artifactId}`} artifact={entry.artifact} />
+            )
+          )}
           {sending && (
-            <div className="text-primary/60">
-              <PulseDots />
-            </div>
-          )}
-
-          {error && (
-            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/20">
-              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-destructive">Something went sideways</p>
-                <p className="text-xs text-destructive/80 mt-0.5">{error}</p>
-              </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              agent is thinking…
             </div>
           )}
         </div>
       </ScrollArea>
 
-      <div className="p-4 px-6 shrink-0">
-        <div className="flex gap-2">
+      {error && (
+        <div className="mx-4 mb-2 p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <div>{error}</div>
+        </div>
+      )}
+
+      <div className="border-t border-border/50 p-3 shrink-0">
+        <div className="max-w-3xl mx-auto flex items-end gap-2">
           <Textarea
-            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Say something interesting..."
-            disabled={sending}
-            className="min-h-[44px] max-h-[120px] rounded-xl bg-secondary/50 border-border/50 focus:border-primary focus:ring-primary/20 resize-none text-sm"
+            onKeyDown={onKeyDown}
+            placeholder="Type a message…"
             rows={1}
+            className="resize-none max-h-32"
+            disabled={sending}
           />
-          <Button
-            onClick={handleSend}
-            disabled={sending || !input.trim()}
-            size="icon"
-            className="h-[44px] w-[44px] rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-cyan-500/25 text-white transition-all duration-200 shrink-0"
-          >
+          <Button onClick={handleSend} disabled={sending || !input.trim()} size="icon" aria-label="Send">
             <Send className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground/30 text-center mt-2">
-          {supportsStreaming ? "Streaming" : "Blocking"} mode
-          {contextId && <span> &middot; Context: {contextId.slice(0, 8)}...</span>}
-        </p>
+        {taskState && (
+          <div className="max-w-3xl mx-auto mt-2 flex justify-end">
+            <Badge variant="outline" className="text-[10px]">{taskState}</Badge>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function messageFromError(err: unknown): string {
+  if (err instanceof ApiError) return `${err.status}: ${err.message}`;
+  if (err instanceof Error) return err.message;
+  return String(err);
 }
