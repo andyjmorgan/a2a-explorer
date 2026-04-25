@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageBubble } from "./MessageBubble";
 import { ArtifactView } from "./ArtifactView";
 import { PulseDots } from "./PulseDots";
-import { a2aApi, ApiError } from "@/lib/api";
+import { a2aApi, ApiError, type SendMessageRequestBody, type SendMessageResponseBody } from "@/lib/api";
 import type { Message, Artifact, TaskState } from "@/types/a2a";
 
 interface ChatPanelProps {
@@ -15,7 +15,7 @@ interface ChatPanelProps {
 }
 
 type Entry =
-  | { kind: "message"; message: Message }
+  | { kind: "message"; message: Message; raw?: { request?: SendMessageRequestBody; response?: SendMessageResponseBody } }
   | { kind: "artifact"; artifact: Artifact };
 
 export function ChatPanel({ agentId }: ChatPanelProps) {
@@ -55,30 +55,38 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
       ...(contextId ? { contextId } : {}),
       ...(taskId ? { taskId } : {}),
     };
-    setEntries((prev) => [...prev, { kind: "message", message: userMessage }]);
+    const requestBody: SendMessageRequestBody = {
+      message: userMessage,
+      configuration: { blocking: true },
+    };
+    setEntries((prev) => [
+      ...prev,
+      { kind: "message", message: userMessage, raw: { request: requestBody } },
+    ]);
     setInput("");
     setSending(true);
     setError(null);
     setTaskState(null);
 
     try {
-      const response = await a2aApi.sendMessage(agentId, {
-        message: userMessage,
-        configuration: { blocking: true },
-      });
+      const response = await a2aApi.sendMessage(agentId, requestBody);
 
       if (response.task) {
         setContextId(response.task.contextId);
         setTaskId(response.task.id);
         setTaskState(response.task.status.state);
         if (response.task.status.message) {
-          appendMessage(response.task.status.message);
+          appendMessage(response.task.status.message, response);
         }
         for (const artifact of response.task.artifacts ?? []) {
           upsertArtifact(artifact);
         }
       } else if (response.message) {
-        appendMessage(response.message);
+        // A bare message response still carries the conversation's contextId — capture it so
+        // follow-ups include it and the agent recognises the same turn.
+        if (response.message.contextId) setContextId(response.message.contextId);
+        if (response.message.taskId) setTaskId(response.message.taskId);
+        appendMessage(response.message, response);
       }
     } catch (err) {
       setError(messageFromError(err));
@@ -94,12 +102,12 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
     }
   };
 
-  function appendMessage(message: Message) {
+  function appendMessage(message: Message, response?: SendMessageResponseBody) {
     setEntries((prev) => {
       if (prev.some((e) => e.kind === "message" && e.message.messageId === message.messageId)) {
         return prev;
       }
-      return [...prev, { kind: "message", message }];
+      return [...prev, { kind: "message", message, raw: response ? { response } : undefined }];
     });
   }
 
@@ -131,7 +139,7 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
           )}
           {entries.map((entry, i) =>
             entry.kind === "message" ? (
-              <MessageBubble key={`m-${i}`} message={entry.message} />
+              <MessageBubble key={`m-${i}`} message={entry.message} raw={entry.raw} />
             ) : (
               <div key={`a-${entry.artifact.artifactId}`} className="px-2 sm:px-6 py-1.5">
                 <ArtifactView artifact={entry.artifact} />
@@ -181,9 +189,11 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
               {sending ? <Square className="h-4 w-4" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
-          {taskState && (
-            <div className="max-w-3xl mx-auto mt-2 flex justify-end">
-              <Badge variant="outline" className="text-[10px]">{taskState}</Badge>
+          {(taskState || contextId || taskId) && (
+            <div className="max-w-3xl mx-auto mt-2 flex flex-wrap items-center justify-end gap-1.5">
+              {contextId && <IdChip label="ctx" value={contextId} />}
+              {taskId && <IdChip label="task" value={taskId} />}
+              {taskState && <Badge variant="outline" className="text-[10px]">{taskState}</Badge>}
             </div>
           )}
         </div>
@@ -196,4 +206,29 @@ function messageFromError(err: unknown): string {
   if (err instanceof ApiError) return `${err.status}: ${err.message}`;
   if (err instanceof Error) return err.message;
   return String(err);
+}
+
+function IdChip({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const short = value.length > 8 ? `${value.slice(0, 8)}…` : value;
+  const handleClick = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      title={`${label}: ${value} (click to copy)`}
+      className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-secondary/60 px-2 py-0.5 text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+    >
+      <span className="text-muted-foreground/70">{label}</span>
+      <span>{copied ? "copied" : short}</span>
+    </button>
+  );
 }

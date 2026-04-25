@@ -1,13 +1,15 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CopyButton } from "./CopyButton";
+import { RawViewerButton, type RawTurn } from "./RawViewerButton";
 import type { Message, Part } from "@/types/a2a";
 
 interface MessageBubbleProps {
   message: Message;
+  raw?: RawTurn;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, raw }: MessageBubbleProps) {
   const isUser = message.role === "ROLE_USER";
   const copyText = collectCopyText(message);
 
@@ -19,11 +21,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <PartRenderer key={i} part={part} variant="user" />
           ))}
         </div>
-        {copyText && (
-          <div className="mt-1">
-            <CopyButton text={copyText} />
-          </div>
-        )}
+        <Toolbar copyText={copyText} raw={raw} />
       </div>
     );
   }
@@ -35,11 +33,25 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <PartRenderer key={i} part={part} variant="agent" />
         ))}
       </div>
-      {copyText && (
-        <div className="mt-1 flex">
-          <CopyButton text={copyText} />
-        </div>
-      )}
+      <Toolbar copyText={copyText} raw={raw} alignStart />
+    </div>
+  );
+}
+
+function Toolbar({
+  copyText,
+  raw,
+  alignStart = false,
+}: {
+  copyText: string;
+  raw?: RawTurn;
+  alignStart?: boolean;
+}) {
+  if (!copyText && !raw) return null;
+  return (
+    <div className={`mt-1 flex items-center gap-0.5 ${alignStart ? "" : "justify-end"}`}>
+      {copyText && <CopyButton text={copyText} />}
+      {raw && <RawViewerButton raw={raw} />}
     </div>
   );
 }
