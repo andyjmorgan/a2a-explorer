@@ -87,11 +87,16 @@ export interface AgentSkill {
   outputModes?: string[];
 }
 
+// The A2A .NET SDK serialises Role with JsonStringEnumMemberName attributes — its wire format is
+// ROLE_USER / ROLE_AGENT, not the protocol's lowercase "user"/"agent". We match the SDK because it
+// wins serialization on both sides of our backend.
+export type Role = "ROLE_USER" | "ROLE_AGENT" | "ROLE_UNSPECIFIED";
+
 export interface Message {
   messageId: string;
   contextId?: string;
   taskId?: string;
-  role: "user" | "agent";
+  role: Role;
   parts: Part[];
   metadata?: Record<string, unknown>;
 }

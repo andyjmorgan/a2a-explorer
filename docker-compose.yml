@@ -18,5 +18,28 @@ services:
       timeout: 3s
       retries: 10
 
+  api:
+    build: .
+    image: a2a-explorer:local
+    container_name: a2a-explorer-api
+    restart: unless-stopped
+    # Maps host :5180 → container :8080 — that host port is registered as an
+    # allowed redirect URI + web origin on the Keycloak a2a-explorer client.
+    ports:
+      - "5180:8080"
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Persistence__ConnectionString: "Host=postgres;Port=5432;Database=a2a_explorer;Username=a2a_explorer;Password=a2a_explorer_dev"
+      Keycloak__Authority: "https://auth.donkeywork.dev/realms/Agents"
+      Keycloak__Audience: "a2a-explorer"
+      Keycloak__ClientId: "a2a-explorer"
+      Keycloak__ClientSecret: ${KEYCLOAK_CLIENT_SECRET:?set KEYCLOAK_CLIENT_SECRET in .env}
+      Keycloak__FrontendUrl: "http://localhost:5180"
+      Keycloak__RequireHttpsMetadata: "true"
+      Security__CredentialEncryptionKey: ${SECURITY_ENCRYPTION_KEY:?set SECURITY_ENCRYPTION_KEY in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   a2a_explorer_pgdata:

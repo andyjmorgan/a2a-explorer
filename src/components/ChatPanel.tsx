@@ -49,7 +49,7 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
 
     const userMessage: Message = {
       messageId: crypto.randomUUID(),
-      role: "user",
+      role: "ROLE_USER",
       parts: [{ kind: "text", text }],
       ...(contextId ? { contextId } : {}),
       ...(taskId ? { taskId } : {}),

@@ -102,7 +102,7 @@ describe("HomePage", () => {
     await userEvent.click(await screen.findByText("Edit"));
 
     await waitFor(() => {
-      expect(screen.getByText(/edit agent/i)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /edit alpha/i })).toBeInTheDocument();
     });
   });
 

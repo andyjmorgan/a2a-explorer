@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
 namespace DonkeyWork.A2AExplorer.Identity.Api;
@@ -54,12 +55,30 @@ public static class DependencyInjection
                     ValidateIssuer = true,
                     ValidIssuer = options.Authority,
                     ValidateAudience = true,
-                    AudienceValidator = (audiences, _, _) =>
+                    AudienceValidator = (audiences, securityToken, _) =>
                     {
-                        // Keycloak public clients often set 'azp' (authorized party) instead of 'aud'.
+                        // Keycloak leaves aud as ["account"] by default and puts the caller's
+                        // client id in azp (authorized party). Accept a match on either claim
+                        // against the configured Audience or ClientId.
                         var expected = options.Audience;
-                        return audiences.Any(a => string.Equals(a, expected, StringComparison.Ordinal))
-                            || audiences.Any(a => string.Equals(a, effectiveClientId, StringComparison.Ordinal));
+                        if (audiences.Any(a => string.Equals(a, expected, StringComparison.Ordinal))
+                            || audiences.Any(a => string.Equals(a, effectiveClientId, StringComparison.Ordinal)))
+                        {
+                            return true;
+                        }
+
+                        if (securityToken is JsonWebToken jwtToken)
+                        {
+                            var azp = jwtToken.GetPayloadValue<string?>("azp");
+                            if (!string.IsNullOrEmpty(azp)
+                                && (string.Equals(azp, expected, StringComparison.Ordinal)
+                                    || string.Equals(azp, effectiveClientId, StringComparison.Ordinal)))
+                            {
+                                return true;
+                            }
+                        }
+
+                        return false;
                     },
                     ValidateIssuerSigningKey = true,
                     ValidateLifetime = true,

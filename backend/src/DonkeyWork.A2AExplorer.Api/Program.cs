@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
 using DonkeyWork.A2AExplorer.Agents.Api;
+using DonkeyWork.A2AExplorer.Api;
 using DonkeyWork.A2AExplorer.Identity.Api;
 using DonkeyWork.A2AExplorer.Persistence;
 using Microsoft.AspNetCore.RateLimiting;
@@ -29,6 +30,10 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+
+        // Speak the A2A protocol's lowercase role values on our wire, even though the A2A SDK's
+        // Role enum serialises as ROLE_USER/ROLE_AGENT internally.
+        options.JsonSerializerOptions.Converters.Add(new RoleJsonConverter());
     });
 
 builder.Services.AddHttpClient();

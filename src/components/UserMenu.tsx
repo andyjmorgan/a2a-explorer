@@ -1,10 +1,8 @@
-import { LogOut, User as UserIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -28,18 +26,21 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={(props) => (
-          <Button {...props} variant="ghost" className="h-9 w-9 rounded-full p-0" aria-label="User menu">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-medium">
-              {initials || <UserIcon className="h-4 w-4" />}
-            </div>
-          </Button>
+          <button
+            {...props}
+            type="button"
+            aria-label="User menu"
+            className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-medium hover:opacity-90 transition-opacity"
+          >
+            {initials || "?"}
+          </button>
         )}
       />
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>
+        <div className="px-2 py-1.5">
           <div className="text-sm font-medium truncate">{user.name ?? user.username ?? "Signed in"}</div>
           <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-        </DropdownMenuLabel>
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="h-4 w-4 mr-2" />
