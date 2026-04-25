@@ -27,6 +27,7 @@ public sealed class AgentConfiguration : IEntityTypeConfiguration<AgentEntity>
         builder.Property(a => a.AuthHeaderName).HasColumnName("auth_header_name").HasMaxLength(128);
         builder.Property(a => a.AuthHeaderValueEncrypted).HasColumnName("auth_header_value_encrypted");
         builder.Property(a => a.LastUsedAt).HasColumnName("last_used_at");
+        builder.Property(a => a.IconShade).HasColumnName("icon_shade").HasMaxLength(32);
 
         builder.HasIndex(a => a.UserId).HasDatabaseName("ix_agents_user_id");
         builder.HasIndex(a => new { a.UserId, a.Name })

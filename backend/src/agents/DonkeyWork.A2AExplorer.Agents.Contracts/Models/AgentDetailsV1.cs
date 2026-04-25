@@ -44,4 +44,8 @@ public sealed class AgentDetailsV1
     /// <summary>Gets the UTC timestamp of the most recent update, or null when never updated.</summary>
     [JsonPropertyName("updatedAt")]
     public DateTimeOffset? UpdatedAt { get; init; }
+
+    /// <summary>Gets the named gradient shade chosen for the agent's icon.</summary>
+    [JsonPropertyName("iconShade")]
+    public string? IconShade { get; init; }
 }

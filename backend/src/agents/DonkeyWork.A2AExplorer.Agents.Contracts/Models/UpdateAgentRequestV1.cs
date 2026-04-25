@@ -39,4 +39,9 @@ public sealed class UpdateAgentRequestV1
     [StringLength(4096)]
     [JsonPropertyName("authHeaderValue")]
     public string? AuthHeaderValue { get; init; }
+
+    /// <summary>Gets the new icon shade, or null to leave unchanged.</summary>
+    [StringLength(32)]
+    [JsonPropertyName("iconShade")]
+    public string? IconShade { get; init; }
 }

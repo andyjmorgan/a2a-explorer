@@ -3,6 +3,8 @@ import { ArrowLeft, ArrowRight, Globe, Loader2, Save, ShieldCheck, ShieldAlert }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AgentCardPreview } from "./AgentCardPreview";
+import { ShadePicker } from "./ShadePicker";
+import { DEFAULT_SHADE, type AgentShadeId } from "./AgentShade";
 import { agentsApi, a2aApi, ApiError } from "@/lib/api";
 import type { AgentCard } from "@/types/a2a";
 import type { AgentAuthMode, AgentDetails } from "@/types/saved-agent";
@@ -24,6 +26,9 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
   const [name, setName] = useState(editing?.name ?? "");
   const [authHeaderName, setAuthHeaderName] = useState(editing?.authHeaderName ?? "");
   const [authHeaderValue, setAuthHeaderValue] = useState("");
+  const [iconShade, setIconShade] = useState<AgentShadeId>(
+    (editing?.iconShade as AgentShadeId | undefined) ?? DEFAULT_SHADE
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +77,7 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
         authMode,
         authHeaderName: authMode === "Header" ? authHeaderName.trim() : undefined,
         authHeaderValue: authMode === "Header" ? authHeaderValue || undefined : undefined,
+        iconShade,
       };
       const details = editing
         ? await agentsApi.update(editing.id, payload)
@@ -132,6 +138,8 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
               setAuthHeaderName={setAuthHeaderName}
               authHeaderValue={authHeaderValue}
               setAuthHeaderValue={setAuthHeaderValue}
+              iconShade={iconShade}
+              setIconShade={setIconShade}
               error={error}
             />
           )}
@@ -261,6 +269,8 @@ interface ReviewStepProps {
   setAuthHeaderName: (v: string) => void;
   authHeaderValue: string;
   setAuthHeaderValue: (v: string) => void;
+  iconShade: AgentShadeId;
+  setIconShade: (v: AgentShadeId) => void;
   error: string | null;
 }
 
@@ -279,6 +289,10 @@ function ReviewStep(props: ReviewStepProps) {
           onChange={(e) => props.setName(e.target.value)}
           className="h-11"
         />
+      </Section>
+
+      <Section title="Icon shade" description="Pick a color to tell this agent apart at a glance.">
+        <ShadePicker value={props.iconShade} onChange={props.setIconShade} />
       </Section>
 
       {needsAuth ? (

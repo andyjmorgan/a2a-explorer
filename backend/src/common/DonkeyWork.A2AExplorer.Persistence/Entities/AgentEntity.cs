@@ -30,4 +30,7 @@ public sealed class AgentEntity : BaseEntity
 
     /// <summary>Gets or sets the UTC timestamp when this agent was last successfully used via the proxy.</summary>
     public DateTimeOffset? LastUsedAt { get; set; }
+
+    /// <summary>Gets or sets the named gradient shade chosen for the agent's icon (e.g. "cyan", "violet").</summary>
+    public string? IconShade { get; set; }
 }

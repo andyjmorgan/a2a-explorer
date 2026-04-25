@@ -11,6 +11,7 @@ export interface AgentSummary {
   hasAuthHeaderValue: boolean;
   lastUsedAt?: string;
   createdAt: string;
+  iconShade?: string;
 }
 
 export interface AgentDetails extends AgentSummary {
@@ -24,6 +25,7 @@ export interface CreateAgentRequest {
   authMode: AgentAuthMode;
   authHeaderName?: string;
   authHeaderValue?: string;
+  iconShade?: string;
 }
 
 export interface UpdateAgentRequest {
@@ -32,6 +34,7 @@ export interface UpdateAgentRequest {
   authMode?: AgentAuthMode;
   authHeaderName?: string;
   authHeaderValue?: string;
+  iconShade?: string;
 }
 
 export interface TestConnectionRequest {
