@@ -10,6 +10,7 @@ using DonkeyWork.A2AExplorer.Agents.Core;
 using DonkeyWork.A2AExplorer.Agents.Core.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -28,7 +29,7 @@ public sealed class AgentA2AControllerTests
         var outbound = new Mock<IA2AOutboundFactory>();
         outbound.Setup(f => f.FetchCardForSavedAgentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(card);
-        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>());
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.GetCard(Guid.NewGuid(), CancellationToken.None);
@@ -47,7 +48,7 @@ public sealed class AgentA2AControllerTests
         var outbound = new Mock<IA2AOutboundFactory>();
         outbound.Setup(f => f.FetchCardForSavedAgentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((AgentCard?)null);
-        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>());
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.GetCard(Guid.NewGuid(), CancellationToken.None);
@@ -65,7 +66,7 @@ public sealed class AgentA2AControllerTests
         var outbound = new Mock<IA2AOutboundFactory>();
         outbound.Setup(f => f.FetchCardForSavedAgentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new SsrfRejectedException(new Uri("https://192.168.1.1"), SsrfResult.PrivateAddress));
-        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>());
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.GetCard(Guid.NewGuid(), CancellationToken.None);
@@ -84,7 +85,7 @@ public sealed class AgentA2AControllerTests
         var outbound = new Mock<IA2AOutboundFactory>();
         outbound.Setup(f => f.FetchCardForSavedAgentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("boom"));
-        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>());
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.GetCard(Guid.NewGuid(), CancellationToken.None);
@@ -100,7 +101,7 @@ public sealed class AgentA2AControllerTests
     public async Task TestConnection_InvalidUrl_ReturnsBadRequest()
     {
         // Arrange
-        var controller = new AgentA2AController(Mock.Of<IA2AOutboundFactory>(), Mock.Of<IAgentService>());
+        var controller = new AgentA2AController(Mock.Of<IA2AOutboundFactory>(), Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.TestConnection(
@@ -124,7 +125,7 @@ public sealed class AgentA2AControllerTests
                 It.IsAny<OutboundAuthHeader?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(card);
-        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>());
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.TestConnection(
@@ -148,7 +149,7 @@ public sealed class AgentA2AControllerTests
                 It.IsAny<OutboundAuthHeader?>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new SsrfRejectedException(new Uri("https://10.0.0.1"), SsrfResult.PrivateAddress));
-        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>());
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.TestConnection(
@@ -169,7 +170,7 @@ public sealed class AgentA2AControllerTests
         var outbound = new Mock<IA2AOutboundFactory>();
         outbound.Setup(f => f.CreateClientForSavedAgentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IA2AClient?)null);
-        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>());
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.SendMessage(Guid.NewGuid(), new SendMessageRequest(), CancellationToken.None);
@@ -193,7 +194,7 @@ public sealed class AgentA2AControllerTests
         outbound.Setup(f => f.CreateClientForSavedAgentAsync(agentId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(a2aClient.Object);
         var agents = new Mock<IAgentService>();
-        var controller = new AgentA2AController(outbound.Object, agents.Object);
+        var controller = new AgentA2AController(outbound.Object, agents.Object, Mock.Of<ILogger<AgentA2AController>>());
 
         // Act
         var result = await controller.SendMessage(agentId, new SendMessageRequest(), CancellationToken.None);

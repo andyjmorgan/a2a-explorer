@@ -11,6 +11,7 @@ using DonkeyWork.A2AExplorer.Agents.Core.Internal;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace DonkeyWork.A2AExplorer.Agents.Api.Controllers;
 
@@ -29,16 +30,22 @@ public sealed class AgentA2AController : ControllerBase
 {
     private readonly IA2AOutboundFactory outboundFactory;
     private readonly IAgentService agentService;
+    private readonly ILogger<AgentA2AController> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AgentA2AController"/> class.
     /// </summary>
     /// <param name="outboundFactory">Builds the SDK's <see cref="IA2AClient"/> for a saved agent.</param>
     /// <param name="agentService">Used to touch LastUsedAt after successful forwards.</param>
-    public AgentA2AController(IA2AOutboundFactory outboundFactory, IAgentService agentService)
+    /// <param name="logger">Logs the full exception when surfacing structured 5xx bodies.</param>
+    public AgentA2AController(
+        IA2AOutboundFactory outboundFactory,
+        IAgentService agentService,
+        ILogger<AgentA2AController> logger)
     {
         this.outboundFactory = outboundFactory;
         this.agentService = agentService;
+        this.logger = logger;
     }
 
     /// <summary>Fetches the agent card for a saved agent owned by the current user.</summary>
@@ -63,7 +70,13 @@ public sealed class AgentA2AController : ControllerBase
         }
         catch (HttpRequestException ex)
         {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new { error = "upstream_unreachable", message = ex.Message });
+            this.logger.LogWarning(ex, "Card fetch failed for agent {AgentId}", id);
+            return this.StatusCode(StatusCodes.Status502BadGateway, BuildErrorBody("upstream_unreachable", ex));
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Unexpected error fetching card for agent {AgentId}", id);
+            return this.StatusCode(StatusCodes.Status500InternalServerError, BuildErrorBody("internal_error", ex));
         }
     }
 
@@ -103,7 +116,13 @@ public sealed class AgentA2AController : ControllerBase
         }
         catch (HttpRequestException ex)
         {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new { error = "upstream_unreachable", message = ex.Message });
+            this.logger.LogWarning(ex, "Test-connection card fetch failed for {BaseUrl}", baseUrl);
+            return this.StatusCode(StatusCodes.Status502BadGateway, BuildErrorBody("upstream_unreachable", ex));
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Unexpected error in test-connection for {BaseUrl}", baseUrl);
+            return this.StatusCode(StatusCodes.Status500InternalServerError, BuildErrorBody("internal_error", ex));
         }
     }
 
@@ -135,9 +154,33 @@ public sealed class AgentA2AController : ControllerBase
         {
             return this.StatusCode(StatusCodes.Status403Forbidden, new { error = "ssrf_rejected", reason = ex.Reason.ToString() });
         }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            this.logger.LogWarning(ex, "Outbound A2A request timed out for agent {AgentId}", id);
+            return this.StatusCode(StatusCodes.Status504GatewayTimeout, BuildErrorBody("upstream_timeout", ex));
+        }
         catch (HttpRequestException ex)
         {
-            return this.StatusCode(StatusCodes.Status502BadGateway, new { error = "upstream_unreachable", message = ex.Message });
+            this.logger.LogWarning(ex, "Outbound A2A request failed for agent {AgentId}", id);
+            return this.StatusCode(StatusCodes.Status502BadGateway, BuildErrorBody("upstream_unreachable", ex));
         }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Unexpected error sending message to agent {AgentId}", id);
+            return this.StatusCode(StatusCodes.Status500InternalServerError, BuildErrorBody("internal_error", ex));
+        }
+    }
+
+    private static object BuildErrorBody(string code, Exception ex)
+    {
+        var inner = ex.InnerException;
+        return new
+        {
+            error = code,
+            type = ex.GetType().FullName,
+            message = ex.Message,
+            innerType = inner?.GetType().FullName,
+            innerMessage = inner?.Message,
+        };
     }
 }
