@@ -1,3 +1,6 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { CopyButton } from "./CopyButton";
 import type { Message, Part } from "@/types/a2a";
 
 interface MessageBubbleProps {
@@ -6,15 +9,21 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "ROLE_USER";
+  const copyText = collectCopyText(message);
 
   if (isUser) {
     return (
-      <div className="flex justify-end px-2 sm:px-6 py-1.5">
+      <div className="flex flex-col items-end px-2 sm:px-6 py-1.5">
         <div className="max-w-[75%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm text-white bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/10">
           {message.parts.map((part, i) => (
-            <PartRenderer key={i} part={part} />
+            <PartRenderer key={i} part={part} variant="user" />
           ))}
         </div>
+        {copyText && (
+          <div className="mt-1">
+            <CopyButton text={copyText} />
+          </div>
+        )}
       </div>
     );
   }
@@ -23,16 +32,30 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     <div className="px-2 sm:px-6 py-1.5">
       <div className="text-sm text-foreground space-y-1">
         {message.parts.map((part, i) => (
-          <PartRenderer key={i} part={part} />
+          <PartRenderer key={i} part={part} variant="agent" />
         ))}
       </div>
+      {copyText && (
+        <div className="mt-1 flex">
+          <CopyButton text={copyText} />
+        </div>
+      )}
     </div>
   );
 }
 
-function PartRenderer({ part }: { part: Part }) {
+function PartRenderer({ part, variant }: { part: Part; variant: "user" | "agent" }) {
   if (part.text != null) {
-    return <p className="whitespace-pre-wrap break-words">{part.text}</p>;
+    if (variant === "user") {
+      // User input is plain text; preserve newlines, don't run markdown so user-typed punctuation
+      // doesn't get interpreted as formatting.
+      return <p className="whitespace-pre-wrap break-words">{part.text}</p>;
+    }
+    return (
+      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-background prose-pre:border prose-pre:border-border prose-code:text-cyan-400 prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline [&>*:last-child]:mb-0">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{part.text}</ReactMarkdown>
+      </div>
+    );
   }
   if (part.data != null) {
     return (
@@ -54,4 +77,15 @@ function PartRenderer({ part }: { part: Part }) {
     return <span className="text-xs text-muted-foreground">[inline file: {name}]</span>;
   }
   return null;
+}
+
+function collectCopyText(message: Message): string {
+  return message.parts
+    .map((p) => {
+      if (p.text != null) return p.text;
+      if (p.data != null) return JSON.stringify(p.data, null, 2);
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n\n");
 }

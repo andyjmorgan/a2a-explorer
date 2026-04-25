@@ -140,9 +140,8 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
           )}
           {sending && (
             <div className="flex justify-start px-2 sm:px-6 py-2">
-              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
-                <PulseDots color="bg-cyan-400" />
-                <span className="text-xs text-cyan-300/80 font-medium">agent is thinking…</span>
+              <div className="flex items-center px-3 py-2 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
+                <PulseDots color="bg-cyan-400" size="w-1.5 h-1.5" />
               </div>
             </div>
           )}
