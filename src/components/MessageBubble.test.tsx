@@ -63,7 +63,7 @@ describe("MessageBubble", () => {
     const { container } = render(
       <MessageBubble message={message([{ text: "hi" }], "ROLE_USER")} />
     );
-    expect(container.querySelector(".justify-end")).not.toBeNull();
+    expect(container.querySelector(".items-end")).not.toBeNull();
     expect(container.querySelector(".bg-gradient-to-r")).not.toBeNull();
   });
 });
