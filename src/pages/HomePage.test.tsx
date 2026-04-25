@@ -106,6 +106,50 @@ describe("HomePage", () => {
     });
   });
 
+  test("expanding SelectedAgent fetches and renders the card", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse([sampleAgent])) // initial list
+      .mockResolvedValueOnce(jsonResponse({                // GET /agents/1/card
+        name: "Alpha",
+        description: "the alpha agent",
+        version: "1.2.3",
+        defaultInputModes: ["text"],
+        defaultOutputModes: ["text"],
+        skills: [],
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByText("Alpha"));
+    // The expand toggle is the only button containing the agent name + base URL header.
+    const expandButton = screen.getByRole("button", { name: /alpha\s+https:\/\/a/i });
+    await userEvent.click(expandButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("v1.2.3")).toBeInTheDocument();
+    });
+  });
+
+  test("SelectedAgent surfaces an error when the card fetch fails", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse([sampleAgent]))
+      .mockResolvedValueOnce(new Response("upstream", { status: 502 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<MemoryRouter><HomePage /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByText("Alpha"));
+    const expandButton = screen.getByRole("button", { name: /alpha\s+https:\/\/a/i });
+    await userEvent.click(expandButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/couldn't load the card/i)).toBeInTheDocument();
+    });
+  });
+
   test("deleting the selected agent clears selection and refreshes", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse([sampleAgent]))        // initial list

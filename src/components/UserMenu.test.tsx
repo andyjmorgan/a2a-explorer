@@ -29,4 +29,16 @@ describe("UserMenu", () => {
     render(<UserMenu />);
     expect(screen.getByRole("button", { name: /user menu/i })).toHaveTextContent("U");
   });
+
+  test("clicking Log out navigates to the auth logout endpoint", async () => {
+    const userEvent = (await import("@testing-library/user-event")).default;
+    useAuthStore.getState().setUser({ id: "u", email: "u@example.test", name: "Ursula" });
+
+    render(<UserMenu />);
+    await userEvent.click(screen.getByRole("button", { name: /user menu/i }));
+    const logout = await screen.findByText(/log out/i);
+    await userEvent.click(logout);
+
+    expect(window.location.assign).toHaveBeenCalledWith("/api/v1/auth/logout");
+  });
 });

@@ -25,11 +25,10 @@ export default defineConfig({
         "src/test/**",
       ],
       thresholds: {
-        // TODO: tighten once MessageBubble/ArtifactView/ChatPanel have proper render tests.
-        lines: 75,
-        statements: 75,
-        branches: 75,
-        functions: 70,
+        lines: 90,
+        statements: 90,
+        branches: 85,
+        functions: 90,
       },
     },
   },
