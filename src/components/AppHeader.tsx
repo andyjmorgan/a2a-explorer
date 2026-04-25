@@ -1,3 +1,4 @@
+import { Menu } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 import donkeyworkLogo from "/donkeywork.png";
@@ -8,9 +9,23 @@ const GitHubIcon = () => (
   </svg>
 );
 
-export function AppHeader() {
+interface AppHeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function AppHeader({ onMenuClick }: AppHeaderProps) {
   return (
-    <header className="h-12 border-b border-border/50 flex items-center px-4 gap-3 shrink-0 bg-card/80 backdrop-blur-sm">
+    <header className="h-12 border-b border-border/50 flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0 bg-card/80 backdrop-blur-sm">
+      {onMenuClick && (
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="md:hidden h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary"
+          aria-label="Open menu"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+      )}
       <img src={donkeyworkLogo} alt="" className="h-6 w-6" />
       <span className="text-sm font-semibold tracking-tight bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
         A2A Explorer
