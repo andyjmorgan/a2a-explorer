@@ -50,18 +50,20 @@ describe("MessageBubble", () => {
     expect(container.querySelector("p, pre, a, span")).toBeNull();
   });
 
-  test("agent role flips the layout classes", () => {
+  test("agent role renders as plain prose without a bubble container", () => {
     const { container } = render(
       <MessageBubble message={message([{ text: "hi" }], "ROLE_AGENT")} />
     );
-    expect(container.querySelector(".flex-row")).not.toBeNull();
-    expect(container.querySelector(".flex-row-reverse")).toBeNull();
+    // Agent messages have no gradient bubble, no right-justification.
+    expect(container.querySelector(".justify-end")).toBeNull();
+    expect(container.querySelector(".bg-gradient-to-r")).toBeNull();
   });
 
-  test("user role uses the reversed flex layout", () => {
+  test("user role renders a right-aligned gradient bubble", () => {
     const { container } = render(
       <MessageBubble message={message([{ text: "hi" }], "ROLE_USER")} />
     );
-    expect(container.querySelector(".flex-row-reverse")).not.toBeNull();
+    expect(container.querySelector(".justify-end")).not.toBeNull();
+    expect(container.querySelector(".bg-gradient-to-r")).not.toBeNull();
   });
 });
