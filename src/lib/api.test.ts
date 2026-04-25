@@ -111,7 +111,7 @@ describe("a2aApi", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await a2aApi.sendMessage("agent-1", {
-      message: { messageId: "u1", role: "ROLE_USER", parts: [{ kind: "text", text: "hi" }] },
+      message: { messageId: "u1", role: "ROLE_USER", parts: [{ text: "hi" }] },
     });
 
     expect(result).toEqual(envelope);

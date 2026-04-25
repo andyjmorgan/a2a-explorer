@@ -101,29 +101,16 @@ export interface Message {
   metadata?: Record<string, unknown>;
 }
 
-export type Part = TextPart | DataPart | FilePart;
-
-export interface TextPart {
-  kind: "text";
-  text: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface DataPart {
-  kind: "data";
-  data: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-}
-
-export interface FilePart {
-  kind: "file";
-  file: {
-    name?: string;
-    mimeType?: string;
-    bytes?: string;
-    uri?: string;
-  };
-  metadata?: Record<string, unknown>;
+// The A2A .NET SDK serialises Part by field-presence rather than the protocol's `kind`
+// discriminator: exactly one of text / data / url / raw is populated per part. We match that.
+export interface Part {
+  text?: string | null;
+  data?: Record<string, unknown> | null;
+  url?: string | null;
+  raw?: string | null;
+  filename?: string | null;
+  mediaType?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface Task {

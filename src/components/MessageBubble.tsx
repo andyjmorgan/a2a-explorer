@@ -33,25 +33,26 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 }
 
 function PartRenderer({ part }: { part: Part }) {
-  if (part.kind === "text") {
+  if (part.text != null) {
     return <p className="whitespace-pre-wrap break-words">{part.text}</p>;
   }
-  if (part.kind === "data") {
+  if (part.data != null) {
     return (
       <pre className="text-xs overflow-x-auto rounded bg-background/50 p-2 my-1">
         {JSON.stringify(part.data, null, 2)}
       </pre>
     );
   }
-  if (part.kind === "file") {
-    const name = part.file.name ?? "file";
-    if (part.file.uri) {
-      return (
-        <a href={part.file.uri} target="_blank" rel="noopener noreferrer" className="text-primary underline">
-          {name}
-        </a>
-      );
-    }
+  if (part.url != null) {
+    const name = part.filename ?? "file";
+    return (
+      <a href={part.url} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+        {name}
+      </a>
+    );
+  }
+  if (part.raw != null) {
+    const name = part.filename ?? "file";
     return <span className="text-xs text-muted-foreground">[inline file: {name}]</span>;
   }
   return null;
