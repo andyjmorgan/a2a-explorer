@@ -128,7 +128,7 @@ public sealed class AgentA2AController : ControllerBase
             }
 
             var response = await client.SendMessageAsync(request, cancellationToken);
-            _ = this.agentService.TouchLastUsedAsync(id, CancellationToken.None);
+            await this.agentService.TouchLastUsedAsync(id, CancellationToken.None).ConfigureAwait(false);
             return this.Ok(response);
         }
         catch (SsrfRejectedException ex)

@@ -34,7 +34,10 @@ public static class DependencyInjection
         services.AddTransient<SsrfValidatingHandler>();
         services.AddHttpClient(A2AOutboundFactory.HttpClientName, http =>
             {
-                http.Timeout = TimeSpan.FromSeconds(30);
+                // Agents routinely run multi-step LLM/tool chains; 30s was killing
+                // legitimate calls. 10 minutes is the synchronous send-message ceiling
+                // until streaming lands.
+                http.Timeout = TimeSpan.FromMinutes(10);
             })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
