@@ -66,7 +66,7 @@ describe("ChatPanel", () => {
     sendMessage.mockResolvedValueOnce(response);
 
     render(<ChatPanel agentId="a1" />);
-    await userEvent.type(screen.getByPlaceholderText(/type a message/i), "hi there");
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "hi there");
     await userEvent.click(screen.getByRole("button", { name: /send/i }));
 
     await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
@@ -91,7 +91,7 @@ describe("ChatPanel", () => {
     });
 
     render(<ChatPanel agentId="a1" />);
-    await userEvent.type(screen.getByPlaceholderText(/type a message/i), "ping");
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "ping");
     await userEvent.click(screen.getByRole("button", { name: /send/i }));
 
     await waitFor(() => expect(screen.getByText("direct reply")).toBeInTheDocument());
@@ -104,7 +104,7 @@ describe("ChatPanel", () => {
     sendMessage.mockRejectedValueOnce(new ApiError(502, "upstream down"));
 
     render(<ChatPanel agentId="a1" />);
-    await userEvent.type(screen.getByPlaceholderText(/type a message/i), "boom");
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "boom");
     await userEvent.click(screen.getByRole("button", { name: /send/i }));
 
     await waitFor(() => expect(screen.getByText(/502: upstream down/)).toBeInTheDocument());
@@ -114,7 +114,7 @@ describe("ChatPanel", () => {
     sendMessage.mockRejectedValueOnce(new Error("network blew up"));
 
     render(<ChatPanel agentId="a1" />);
-    await userEvent.type(screen.getByPlaceholderText(/type a message/i), "boom");
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "boom");
     await userEvent.click(screen.getByRole("button", { name: /send/i }));
 
     await waitFor(() => expect(screen.getByText(/network blew up/)).toBeInTheDocument());
@@ -130,7 +130,7 @@ describe("ChatPanel", () => {
     });
 
     render(<ChatPanel agentId="a1" />);
-    const textarea = screen.getByPlaceholderText(/type a message/i);
+    const textarea = screen.getByPlaceholderText(/send a message/i);
 
     // Shift+Enter inserts a newline rather than submitting.
     await userEvent.type(textarea, "first line{Shift>}{Enter}{/Shift}second line");
@@ -151,7 +151,7 @@ describe("ChatPanel", () => {
     });
 
     const { rerender } = render(<ChatPanel agentId="a1" />);
-    await userEvent.type(screen.getByPlaceholderText(/type a message/i), "hi");
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "hi");
     await userEvent.click(screen.getByRole("button", { name: /send/i }));
     await waitFor(() =>
       expect(screen.getByText("first agent reply")).toBeInTheDocument()

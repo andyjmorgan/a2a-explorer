@@ -71,7 +71,7 @@ describe("HomePage", () => {
     await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
 
     await userEvent.click(screen.getByText("Alpha"));
-    expect(screen.getByPlaceholderText(/type a message/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/send a message/i)).toBeInTheDocument();
   });
 
   test("shows an inline error when the list request fails", async () => {
@@ -161,7 +161,7 @@ describe("HomePage", () => {
     await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
 
     await userEvent.click(screen.getByText("Alpha"));
-    expect(screen.getByPlaceholderText(/type a message/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/send a message/i)).toBeInTheDocument();
 
     const [sidebarAlpha] = screen.getAllByText("Alpha");
     const row = sidebarAlpha.closest("div");
@@ -170,7 +170,7 @@ describe("HomePage", () => {
     await userEvent.click(await screen.findByText("Delete"));
 
     await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/type a message/i)).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(/send a message/i)).not.toBeInTheDocument();
     });
   });
 });
