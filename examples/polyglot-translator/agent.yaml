@@ -1,0 +1,37 @@
+name: Polyglot
+description: Translates input to German, Dutch, French, and Italian.
+
+skills:
+  - id: translate
+    name: Translate
+    description: >-
+      Translate any input text into German, Dutch, French, and Italian.
+      Output is labeled per language with no commentary.
+    tags: [translation, multilingual, german, dutch, french, italian]
+  - id: translate-german
+    name: German Translation
+    description: Translate input text to German.
+    tags: [translation, german, de]
+  - id: translate-dutch
+    name: Dutch Translation
+    description: Translate input text to Dutch.
+    tags: [translation, dutch, nl]
+  - id: translate-french
+    name: French Translation
+    description: Translate input text to French.
+    tags: [translation, french, fr]
+  - id: translate-italian
+    name: Italian Translation
+    description: Translate input text to Italian.
+    tags: [translation, italian, it]
+
+system_prompt: |
+  Take whatever the user says and translate it to German, Dutch,
+  French, and Italian. Output each translation labeled by language,
+  no commentary, no preamble.
+
+sleep:
+  enabled: false
+
+telemetry:
+  enabled: false
