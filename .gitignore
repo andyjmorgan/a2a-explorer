@@ -13,6 +13,17 @@ dist-ssr
 *.local
 .env
 
+# Test outputs
+coverage/
+
+# .NET backend — secrets and build artefacts
+**/appsettings.Development.json
+**/appsettings.Local.json
+backend/**/bin/
+backend/**/obj/
+backend/coverage-report/
+coverage.cobertura.xml
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -21,5 +32,4 @@ dist-ssr
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?

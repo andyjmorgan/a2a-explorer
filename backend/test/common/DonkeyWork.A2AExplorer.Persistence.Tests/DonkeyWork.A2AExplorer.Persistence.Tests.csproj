@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DonkeyWork.A2AExplorer.Persistence.Tests</RootNamespace>
+    <AssemblyName>DonkeyWork.A2AExplorer.Persistence.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\common\DonkeyWork.A2AExplorer.Persistence\DonkeyWork.A2AExplorer.Persistence.csproj" />
+    <ProjectReference Include="..\..\..\src\identity\DonkeyWork.A2AExplorer.Identity.Contracts\DonkeyWork.A2AExplorer.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

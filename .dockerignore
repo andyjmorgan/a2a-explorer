@@ -1,6 +1,27 @@
+.git
+.gitignore
+.github
+.vscode
+.idea
+.DS_Store
+README.md
+docker-compose.yml
+
+# Frontend
 node_modules
 dist
-dist-server
+dist-ssr
+*.log
+
+# Backend — always rebuilt by the SDK stage
+backend/**/bin
+backend/**/obj
+backend/coverage-report
+backend/.config
+backend/test
+
+# Local env / secrets
 .env
-.git
-*.md
+.env.local
+**/appsettings.Development.json
+**/appsettings.Local.json

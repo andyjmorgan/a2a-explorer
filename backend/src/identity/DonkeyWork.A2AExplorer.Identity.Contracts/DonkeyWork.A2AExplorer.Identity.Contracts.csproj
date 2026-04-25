@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DonkeyWork.A2AExplorer.Identity.Contracts</RootNamespace>
+    <AssemblyName>DonkeyWork.A2AExplorer.Identity.Contracts</AssemblyName>
+  </PropertyGroup>
+
+</Project>

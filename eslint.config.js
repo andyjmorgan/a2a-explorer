@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'coverage']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -18,6 +18,19 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+    },
+    rules: {
+      // setState inside useEffect is a legitimate pattern when synchronising with external
+      // systems (auth store hydration, fetch results, query params). The strict rule has
+      // too many false positives for our use cases.
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
+  {
+    // shadcn/ui scaffolding co-locates component + variant constants by convention.
+    files: ['src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])

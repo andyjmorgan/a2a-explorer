@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DonkeyWork.A2AExplorer.Identity.Core.Tests</RootNamespace>
+    <AssemblyName>DonkeyWork.A2AExplorer.Identity.Core.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\identity\DonkeyWork.A2AExplorer.Identity.Core\DonkeyWork.A2AExplorer.Identity.Core.csproj" />
+  </ItemGroup>
+
+</Project>

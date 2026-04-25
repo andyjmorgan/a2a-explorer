@@ -1,0 +1,33 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DonkeyWork.A2AExplorer.Api/DonkeyWork.A2AExplorer.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/agents/">
+    <Project Path="src/agents/DonkeyWork.A2AExplorer.Agents.Api/DonkeyWork.A2AExplorer.Agents.Api.csproj" />
+    <Project Path="src/agents/DonkeyWork.A2AExplorer.Agents.Contracts/DonkeyWork.A2AExplorer.Agents.Contracts.csproj" />
+    <Project Path="src/agents/DonkeyWork.A2AExplorer.Agents.Core/DonkeyWork.A2AExplorer.Agents.Core.csproj" />
+  </Folder>
+  <Folder Name="/src/common/">
+    <Project Path="src/common/DonkeyWork.A2AExplorer.Persistence/DonkeyWork.A2AExplorer.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/identity/">
+    <Project Path="src/identity/DonkeyWork.A2AExplorer.Identity.Api/DonkeyWork.A2AExplorer.Identity.Api.csproj" />
+    <Project Path="src/identity/DonkeyWork.A2AExplorer.Identity.Contracts/DonkeyWork.A2AExplorer.Identity.Contracts.csproj" />
+    <Project Path="src/identity/DonkeyWork.A2AExplorer.Identity.Core/DonkeyWork.A2AExplorer.Identity.Core.csproj" />
+  </Folder>
+  <Folder Name="/test/" />
+  <Folder Name="/test/agents/">
+    <Project Path="test/agents/DonkeyWork.A2AExplorer.Agents.Api.Tests/DonkeyWork.A2AExplorer.Agents.Api.Tests.csproj" />
+    <Project Path="test/agents/DonkeyWork.A2AExplorer.Agents.Core.Tests/DonkeyWork.A2AExplorer.Agents.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/test/common/">
+    <Project Path="test/common/DonkeyWork.A2AExplorer.Persistence.Tests/DonkeyWork.A2AExplorer.Persistence.Tests.csproj" />
+  </Folder>
+  <Folder Name="/test/identity/">
+    <Project Path="test/identity/DonkeyWork.A2AExplorer.Identity.Api.Tests/DonkeyWork.A2AExplorer.Identity.Api.Tests.csproj" />
+    <Project Path="test/identity/DonkeyWork.A2AExplorer.Identity.Core.Tests/DonkeyWork.A2AExplorer.Identity.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/test/integration/">
+    <Project Path="test/integration/DonkeyWork.A2AExplorer.Integration.Tests/DonkeyWork.A2AExplorer.Integration.Tests.csproj" />
+  </Folder>
+</Solution>

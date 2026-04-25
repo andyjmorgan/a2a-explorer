@@ -1,0 +1,27 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,xml,csproj,props,targets,config,sln}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# Overrides — relax a few StyleCop rules to match donkeywork style.
+dotnet_diagnostic.SA1200.severity = suggestion  # using directives outside namespace are fine
+dotnet_diagnostic.SA1309.severity = none        # fields may start with _
+dotnet_diagnostic.SA1101.severity = none        # this. prefix not required
+
+# Documentation rules — explicit error severity (the plan requires them everywhere, including tests).
+dotnet_diagnostic.SA1600.severity = error       # elements must be documented
+dotnet_diagnostic.SA1601.severity = error       # partial elements must be documented
+dotnet_diagnostic.SA1602.severity = error       # enumeration items must be documented
+dotnet_diagnostic.SA1633.severity = error       # file must have header

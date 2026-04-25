@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DonkeyWork.A2AExplorer.Agents.Core.Tests</RootNamespace>
+    <AssemblyName>DonkeyWork.A2AExplorer.Agents.Core.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.11.0" />
+    <PackageReference Include="Respawn" Version="6.2.1" />
+
+    <!-- Pin vulnerable transitive deps (same as Integration.Tests). -->
+    <PackageReference Include="Azure.Identity" Version="1.14.0" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.2.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\agents\DonkeyWork.A2AExplorer.Agents.Core\DonkeyWork.A2AExplorer.Agents.Core.csproj" />
+    <ProjectReference Include="..\..\..\src\identity\DonkeyWork.A2AExplorer.Identity.Contracts\DonkeyWork.A2AExplorer.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\src\common\DonkeyWork.A2AExplorer.Persistence\DonkeyWork.A2AExplorer.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

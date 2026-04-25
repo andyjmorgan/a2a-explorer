@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DonkeyWork.A2AExplorer.Identity.Api.Tests</RootNamespace>
+    <AssemblyName>DonkeyWork.A2AExplorer.Identity.Api.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\identity\DonkeyWork.A2AExplorer.Identity.Api\DonkeyWork.A2AExplorer.Identity.Api.csproj" />
+  </ItemGroup>
+
+</Project>
