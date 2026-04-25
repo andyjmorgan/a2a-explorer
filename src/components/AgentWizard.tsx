@@ -92,7 +92,7 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <header className="px-8 pt-6 pb-4 border-b border-border/50 shrink-0">
+      <header className="px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 pb-4 border-b border-border/50 shrink-0">
         <div className="max-w-2xl mx-auto">
           <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             {stepLabel}
@@ -111,7 +111,7 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-8 py-6 space-y-6">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 md:px-8 py-5 sm:py-6 space-y-5 sm:space-y-6">
           {phase === "url" ? (
             <UrlStep
               baseUrl={baseUrl}
@@ -142,7 +142,7 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
         </div>
       </div>
 
-      <footer className="border-t border-border/50 bg-card/40 px-8 py-4 shrink-0">
+      <footer className="border-t border-border/50 bg-card/40 px-4 sm:px-6 md:px-8 py-3 sm:py-4 shrink-0">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
           {phase === "url" ? (
             <>

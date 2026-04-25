@@ -19,6 +19,9 @@ export function HomePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [wizard, setWizard] = useState<WizardState>({ mode: "hidden" });
   const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const closeSidebar = () => setSidebarOpen(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -83,17 +86,36 @@ export function HomePage() {
 
   const selected = selectedId ? agents.find((a) => a.id === selectedId) : null;
 
+  const handleSelectFromSidebar = (id: string) => {
+    setSelectedId(id);
+    closeSidebar();
+  };
+  const handleEditFromSidebar = (id: string) => {
+    closeSidebar();
+    handleEdit(id);
+  };
+  const handleDeleteFromSidebar = (id: string) => {
+    closeSidebar();
+    handleDelete(id);
+  };
+  const handleNewAgentFromSidebar = () => {
+    closeSidebar();
+    setWizard({ mode: "new" });
+  };
+
   return (
     <div className="h-screen flex flex-col">
-      <AppHeader />
+      <AppHeader onMenuClick={() => setSidebarOpen(true)} />
       <div className="flex-1 min-h-0 flex">
         <AgentsSidebar
           agents={agents}
           selectedId={selectedId}
-          onSelect={setSelectedId}
-          onNewAgent={() => setWizard({ mode: "new" })}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onSelect={handleSelectFromSidebar}
+          onNewAgent={handleNewAgentFromSidebar}
+          onEdit={handleEditFromSidebar}
+          onDelete={handleDeleteFromSidebar}
+          open={sidebarOpen}
+          onClose={closeSidebar}
         />
 
         <main className="flex-1 min-w-0 min-h-0 overflow-hidden">
@@ -164,7 +186,7 @@ function SelectedAgent({ summary }: { summary: AgentSummary }) {
           </div>
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="text-sm font-semibold truncate">{summary.name}</span>
-            <span className="text-xs text-muted-foreground truncate">{summary.baseUrl}</span>
+            <span className="hidden sm:inline text-xs text-muted-foreground truncate">{summary.baseUrl}</span>
           </div>
           <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           {cardOpen ? (
