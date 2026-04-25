@@ -9,16 +9,19 @@ import { ArtifactView } from "./ArtifactView";
 import { PulseDots } from "./PulseDots";
 import { a2aApi, ApiError, type SendMessageRequestBody, type SendMessageResponseBody } from "@/lib/api";
 import type { Message, Artifact, TaskState } from "@/types/a2a";
+import { shadeOf } from "./AgentShade";
 
 interface ChatPanelProps {
   agentId: string;
+  iconShade?: string;
 }
 
 type Entry =
   | { kind: "message"; message: Message; raw?: { request?: SendMessageRequestBody; response?: SendMessageResponseBody } }
   | { kind: "artifact"; artifact: Artifact };
 
-export function ChatPanel({ agentId }: ChatPanelProps) {
+export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
+  const shade = shadeOf(iconShade);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -132,8 +135,8 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
         <div className="max-w-3xl mx-auto py-4 sm:py-6">
           {entries.length === 0 && !sending && (
             <div className="flex flex-col items-center justify-center py-16 sm:py-24 px-6 text-center">
-              <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 mb-5">
-                <Bot className="w-8 h-8 text-cyan-400" strokeWidth={1.5} />
+              <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${shade.gradient} mb-5`}>
+                <Bot className="w-8 h-8 text-white" strokeWidth={1.5} />
               </div>
               <p className="text-base font-medium text-foreground mb-1">Say hi to your agent</p>
               <p className="text-sm text-muted-foreground max-w-sm">

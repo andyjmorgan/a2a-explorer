@@ -1,16 +1,19 @@
 import { Bot } from "lucide-react";
 import type { AgentCard } from "@/types/a2a";
+import { shadeOf } from "./AgentShade";
 
 interface AgentCardPreviewProps {
   card: AgentCard;
   baseUrl: string;
+  iconShade?: string;
 }
 
-export function AgentCardPreview({ card, baseUrl }: AgentCardPreviewProps) {
+export function AgentCardPreview({ card, baseUrl, iconShade }: AgentCardPreviewProps) {
+  const shade = shadeOf(iconShade);
   return (
     <div className="rounded-xl border border-border/60 bg-card/60 p-4 space-y-3">
       <div className="flex items-start gap-3">
-        <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
+        <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${shade.gradient} flex items-center justify-center shrink-0`}>
           <Bot className="h-4 w-4 text-white" />
         </div>
         <div className="min-w-0 flex-1">

@@ -213,11 +213,13 @@ function SelectedAgent({ summary }: { summary: AgentSummary }) {
                 Couldn't load the card: {cardError}
               </div>
             )}
-            {card && !cardLoading && <AgentCardPreview card={card} baseUrl={summary.baseUrl} />}
+            {card && !cardLoading && (
+              <AgentCardPreview card={card} baseUrl={summary.baseUrl} iconShade={summary.iconShade} />
+            )}
           </div>
         )}
       </header>
-      <ChatPanel agentId={summary.id} />
+      <ChatPanel agentId={summary.id} iconShade={summary.iconShade} />
     </div>
   );
 }
