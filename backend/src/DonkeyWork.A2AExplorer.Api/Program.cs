@@ -9,6 +9,7 @@ using DonkeyWork.A2AExplorer.Agents.Api;
 using DonkeyWork.A2AExplorer.Api;
 using DonkeyWork.A2AExplorer.Identity.Api;
 using DonkeyWork.A2AExplorer.Persistence;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,6 +39,16 @@ builder.Services.AddControllers()
 
 builder.Services.AddHttpClient();
 
+// Behind cloudflared / reverse proxies, accept X-Forwarded-* headers so Request.Scheme reflects
+// the original https. Without this the OAuth redirect_uri is built as http://, which Keycloak
+// rejects as an unregistered redirect URI.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddIdentityApi(builder.Configuration);
 builder.Services.AddAgentsApi(builder.Configuration);
@@ -61,6 +72,8 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 app.UseStaticFiles();
 app.UseRouting();
