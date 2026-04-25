@@ -59,6 +59,7 @@ public sealed class AgentService : IAgentService
             AuthMode = request.AuthMode,
             AuthHeaderName = request.AuthHeaderName,
             AuthHeaderValueEncrypted = null,
+            IconShade = request.IconShade,
         };
 
         this.db.Agents.Add(entity);
@@ -84,6 +85,7 @@ public sealed class AgentService : IAgentService
             LastUsedAt = entity.LastUsedAt,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
+            IconShade = entity.IconShade,
         };
     }
 
@@ -142,6 +144,11 @@ public sealed class AgentService : IAgentService
             entity.AuthHeaderName = request.AuthHeaderName;
         }
 
+        if (request.IconShade is not null)
+        {
+            entity.IconShade = request.IconShade;
+        }
+
         await this.db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         var hasAuthHeaderValue = entity.AuthHeaderValueEncrypted is not null;
@@ -176,6 +183,7 @@ public sealed class AgentService : IAgentService
             LastUsedAt = entity.LastUsedAt,
             CreatedAt = entity.CreatedAt,
             UpdatedAt = entity.UpdatedAt,
+            IconShade = entity.IconShade,
         };
     }
 
@@ -261,6 +269,7 @@ public sealed class AgentService : IAgentService
         HasAuthHeaderValue = entity.AuthHeaderValueEncrypted is not null,
         LastUsedAt = entity.LastUsedAt,
         CreatedAt = entity.CreatedAt,
+        IconShade = entity.IconShade,
     };
 
     private static AgentDetailsV1 MapDetails(AgentEntity entity) => new()
@@ -274,6 +283,7 @@ public sealed class AgentService : IAgentService
         LastUsedAt = entity.LastUsedAt,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt,
+        IconShade = entity.IconShade,
     };
 
     private static void AddParameter(System.Data.Common.DbCommand cmd, string name, object value)

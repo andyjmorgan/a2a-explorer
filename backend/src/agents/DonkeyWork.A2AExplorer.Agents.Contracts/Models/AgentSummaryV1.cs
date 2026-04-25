@@ -36,4 +36,8 @@ public sealed class AgentSummaryV1
     /// <summary>Gets the UTC timestamp when the agent was first saved.</summary>
     [JsonPropertyName("createdAt")]
     public required DateTimeOffset CreatedAt { get; init; }
+
+    /// <summary>Gets the named gradient shade chosen for the agent's icon.</summary>
+    [JsonPropertyName("iconShade")]
+    public string? IconShade { get; init; }
 }

@@ -36,4 +36,9 @@ public sealed class CreateAgentRequestV1
     [StringLength(4096)]
     [JsonPropertyName("authHeaderValue")]
     public string? AuthHeaderValue { get; init; }
+
+    /// <summary>Gets the named gradient shade chosen for the agent's icon.</summary>
+    [StringLength(32)]
+    [JsonPropertyName("iconShade")]
+    public string? IconShade { get; init; }
 }

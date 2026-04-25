@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Bot, ChevronDown, ChevronUp, Info, Loader2 } from "lucide-react";
+import { AgentCardsGrid } from "@/components/AgentCardsGrid";
 import { AgentsSidebar } from "@/components/AgentsSidebar";
 import { AgentCardPreview } from "@/components/AgentCardPreview";
 import { AgentWizard } from "@/components/AgentWizard";
 import { AppHeader } from "@/components/AppHeader";
 import { ChatPanel } from "@/components/ChatPanel";
+import { shadeOf } from "@/components/AgentShade";
 import { agentsApi, a2aApi, ApiError } from "@/lib/api";
 import type { AgentCard } from "@/types/a2a";
 import type { AgentDetails, AgentSummary } from "@/types/saved-agent";
@@ -135,10 +137,13 @@ export function HomePage() {
           ) : selected ? (
             <SelectedAgent summary={selected} />
           ) : (
-            <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Bot className="h-8 w-8" />
-              <span className="text-sm">Select an agent to get started.</span>
-            </div>
+            <AgentCardsGrid
+              agents={agents}
+              onSelect={setSelectedId}
+              onNewAgent={() => setWizard({ mode: "new" })}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
           )}
         </main>
       </div>
@@ -181,7 +186,7 @@ function SelectedAgent({ summary }: { summary: AgentSummary }) {
           onClick={() => setCardOpen((v) => !v)}
           className="w-full h-12 flex items-center px-4 gap-3 text-left hover:bg-secondary/30 transition-colors"
         >
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
+          <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${shadeOf(summary.iconShade).gradient} flex items-center justify-center shrink-0`}>
             <Bot className="h-3.5 w-3.5 text-white" />
           </div>
           <div className="flex items-center gap-2 min-w-0 flex-1">

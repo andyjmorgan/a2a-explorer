@@ -3,6 +3,7 @@ using System;
 using DonkeyWork.A2AExplorer.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DonkeyWork.A2AExplorer.Persistence.Migrations
 {
     [DbContext(typeof(A2AExplorerDbContext))]
-    partial class A2AExplorerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260425145904_AddIconShade")]
+    partial class AddIconShade
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
