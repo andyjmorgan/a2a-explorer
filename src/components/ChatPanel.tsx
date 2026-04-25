@@ -48,12 +48,17 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
     const text = input.trim();
     if (!text || sending) return;
 
+    // Only echo the taskId back when the agent is still expecting input on that
+    // same task. For every other state — including `completed` — the next user
+    // turn must start a fresh task under the same contextId; reusing the id makes
+    // the agent reject with "task is already completed".
+    const continuingTask = taskState === "input-required" && taskId !== undefined;
     const userMessage: Message = {
       messageId: crypto.randomUUID(),
       role: "ROLE_USER",
       parts: [{ text }],
       ...(contextId ? { contextId } : {}),
-      ...(taskId ? { taskId } : {}),
+      ...(continuingTask ? { taskId } : {}),
     };
     const requestBody: SendMessageRequestBody = {
       message: userMessage,
@@ -93,7 +98,7 @@ export function ChatPanel({ agentId }: ChatPanelProps) {
     } finally {
       setSending(false);
     }
-  }, [agentId, contextId, input, sending, taskId]);
+  }, [agentId, contextId, input, sending, taskId, taskState]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
