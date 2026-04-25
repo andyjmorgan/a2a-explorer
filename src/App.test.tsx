@@ -20,7 +20,7 @@ describe("App routing", () => {
         <App />
       </MemoryRouter>
     );
-    expect(screen.getByRole("button", { name: /sign in with keycloak/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in with github/i })).toBeInTheDocument();
   });
 
   test("/login/callback renders the callback loader", () => {
@@ -38,7 +38,7 @@ describe("App routing", () => {
         <App />
       </MemoryRouter>
     );
-    expect(screen.getByRole("button", { name: /sign in with keycloak/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in with github/i })).toBeInTheDocument();
   });
 
   test("unknown path renders the 404 page", () => {
