@@ -20,11 +20,11 @@ const sendMessage = a2aApi.sendMessage as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   sendMessage.mockReset();
-  if (!globalThis.crypto) {
-    globalThis.crypto = { randomUUID: () => "test-uuid" } as Crypto;
-  } else if (typeof globalThis.crypto.randomUUID !== "function") {
-    Object.defineProperty(globalThis.crypto, "randomUUID", {
-      value: () => "test-uuid",
+  // happy-dom usually provides crypto.randomUUID; if it doesn't, bolt one on so the component
+  // can construct user message ids without crashing.
+  if (typeof globalThis.crypto?.randomUUID !== "function") {
+    Object.defineProperty(globalThis, "crypto", {
+      value: { ...globalThis.crypto, randomUUID: () => "test-uuid" },
       configurable: true,
     });
   }
