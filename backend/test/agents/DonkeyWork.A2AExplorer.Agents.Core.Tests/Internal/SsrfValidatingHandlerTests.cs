@@ -45,10 +45,28 @@ public sealed class SsrfValidatingHandlerTests
         Assert.Equal(0, inner.Calls);
     }
 
-    /// <summary>A non-HTTPS URL is rejected before reaching the inner handler.</summary>
+    /// <summary>A plain HTTP request to a public host now passes (we relaxed the https-only guard).</summary>
     /// <returns>Async task.</returns>
     [Fact]
-    public async Task SendAsync_NonHttps_ThrowsAndDoesNotCallInner()
+    public async Task SendAsync_PlainHttpPublicUrl_PassesThrough()
+    {
+        // Arrange
+        var inner = new RecordingHandler(new HttpResponseMessage(HttpStatusCode.OK));
+        var handler = new SsrfValidatingHandler { InnerHandler = inner };
+        var client = new HttpClient(handler);
+
+        // Act
+        var response = await client.GetAsync("http://example.com/");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(1, inner.Calls);
+    }
+
+    /// <summary>A non-web scheme (ftp, ws, file) is rejected before reaching the inner handler.</summary>
+    /// <returns>Async task.</returns>
+    [Fact]
+    public async Task SendAsync_NonWebScheme_ThrowsAndDoesNotCallInner()
     {
         // Arrange
         var inner = new RecordingHandler(new HttpResponseMessage(HttpStatusCode.OK));
@@ -56,8 +74,8 @@ public sealed class SsrfValidatingHandlerTests
         var client = new HttpClient(handler);
 
         // Act + Assert
-        var ex = await Assert.ThrowsAsync<SsrfRejectedException>(() => client.GetAsync("http://example.com/"));
-        Assert.Equal(SsrfResult.NotHttps, ex.Reason);
+        var ex = await Assert.ThrowsAsync<SsrfRejectedException>(() => client.GetAsync("ftp://example.com/"));
+        Assert.Equal(SsrfResult.UnsupportedScheme, ex.Reason);
         Assert.Equal(0, inner.Calls);
     }
 

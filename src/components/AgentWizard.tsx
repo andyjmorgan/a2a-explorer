@@ -91,27 +91,23 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
     : "Step 2 of 2 · Confirm";
 
   return (
-    <div className="h-full flex flex-col min-h-0">
-      <header className="px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 pb-4 border-b border-border/50 shrink-0">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {stepLabel}
-          </div>
-          <h1 className="text-2xl font-semibold mt-1">
-            {editing ? `Edit ${editing.name}` : phase === "url" ? "New agent" : "Confirm agent"}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {phase === "url"
-              ? "Point A2A Explorer at an agent's base URL. We'll fetch its card server-side so your credentials never leave the backend."
-              : editing
-              ? "Update the agent's metadata or rotate its auth header."
-              : "We discovered the agent card. Name it, add credentials if needed, then save."}
-          </p>
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 pb-6">
+        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {stepLabel}
         </div>
-      </header>
+        <h1 className="text-2xl font-semibold mt-1">
+          {editing ? `Edit ${editing.name}` : phase === "url" ? "New agent" : "Confirm agent"}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {phase === "url"
+            ? "Point A2A Explorer at an agent's base URL. We'll fetch its card server-side so your credentials never leave the backend."
+            : editing
+            ? "Update the agent's metadata or rotate its auth header."
+            : "We discovered the agent card. Name it, add credentials if needed, then save."}
+        </p>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 md:px-8 py-5 sm:py-6 space-y-5 sm:space-y-6">
+        <div className="mt-6 space-y-5 sm:space-y-6">
           {phase === "url" ? (
             <UrlStep
               baseUrl={baseUrl}
@@ -140,10 +136,8 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
             />
           )}
         </div>
-      </div>
 
-      <footer className="border-t border-border/50 bg-card/40 px-4 sm:px-6 md:px-8 py-3 sm:py-4 shrink-0">
-        <div className="max-w-2xl mx-auto flex items-center gap-2">
+        <div className="mt-6 pt-4 border-t border-border/50 flex items-center gap-2">
           {phase === "url" ? (
             <>
               <Button variant="outline" onClick={onCancel} disabled={loading} className="h-9">
@@ -191,7 +185,7 @@ export function AgentWizard({ editing, onSaved, onCancel }: AgentWizardProps) {
             </>
           )}
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
@@ -213,7 +207,7 @@ function UrlStep(props: UrlStepProps) {
 
   return (
     <div className="space-y-5">
-      <Section title="Agent base URL" description="The root URL we'll fetch the agent card from. Must be HTTPS.">
+      <Section title="Agent base URL" description="The root URL we'll fetch the agent card from.">
         <Input
           placeholder="https://agent.example.com"
           value={props.baseUrl}

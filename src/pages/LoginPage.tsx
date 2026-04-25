@@ -47,9 +47,8 @@ const PROVIDERS = [
 ] as const;
 
 export function LoginPage() {
-  const signIn = (idpHint?: string) => {
-    const url = idpHint ? `/api/v1/auth/login?idpHint=${idpHint}` : "/api/v1/auth/login";
-    window.location.assign(url);
+  const signIn = (idpHint: string) => {
+    window.location.assign(`/api/v1/auth/login?idpHint=${idpHint}`);
   };
 
   return (
@@ -83,14 +82,6 @@ export function LoginPage() {
               </Button>
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={() => signIn()}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            or sign in with a username and password
-          </button>
         </div>
       </main>
 

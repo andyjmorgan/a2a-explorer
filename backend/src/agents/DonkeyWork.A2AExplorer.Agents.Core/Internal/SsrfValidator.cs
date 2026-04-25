@@ -8,9 +8,9 @@ using System.Net.Sockets;
 namespace DonkeyWork.A2AExplorer.Agents.Core.Internal;
 
 /// <summary>
-/// SSRF guard ported from <c>server/proxy.ts</c>. Ensures outbound URLs are HTTPS and do not
+/// SSRF guard ported from <c>server/proxy.ts</c>. Ensures outbound URLs use http/https and do not
 /// point at private, loopback, or link-local addresses. Runs before every outbound call so a user
-/// cannot coax the backend into scanning the internal network.
+/// cannot coax the backend into scanning the internal network or hitting non-web schemes.
 /// </summary>
 public static class SsrfValidator
 {
@@ -53,9 +53,10 @@ public static class SsrfValidator
             return SsrfResult.InvalidUrl;
         }
 
-        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))
         {
-            return SsrfResult.NotHttps;
+            return SsrfResult.UnsupportedScheme;
         }
 
         if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase)

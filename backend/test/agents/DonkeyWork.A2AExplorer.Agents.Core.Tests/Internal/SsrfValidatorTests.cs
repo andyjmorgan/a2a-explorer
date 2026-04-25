@@ -10,13 +10,15 @@ namespace DonkeyWork.A2AExplorer.Agents.Core.Tests.Internal;
 /// <summary>Unit tests for the SSRF guard.</summary>
 public sealed class SsrfValidatorTests
 {
-    /// <summary>A well-formed HTTPS URL with a public host passes.</summary>
+    /// <summary>A well-formed http or https URL with a public host passes.</summary>
     /// <param name="url">Candidate URL.</param>
     [Theory]
     [InlineData("https://example.com")]
     [InlineData("https://api.example.com/path?q=1")]
     [InlineData("https://k3s-agentling.donkeywork.dev")]
-    public void Validate_PublicHttpsUrl_ReturnsOk(string url)
+    [InlineData("http://example.com")]
+    [InlineData("http://api.example.com:8080/path")]
+    public void Validate_PublicWebUrl_ReturnsOk(string url)
     {
         Assert.Equal(SsrfResult.Ok, SsrfValidator.Validate(url));
     }
@@ -33,15 +35,15 @@ public sealed class SsrfValidatorTests
         Assert.Equal(SsrfResult.InvalidUrl, SsrfValidator.Validate(url));
     }
 
-    /// <summary>HTTP (non-HTTPS) URLs are rejected as NotHttps.</summary>
+    /// <summary>Schemes other than http and https are rejected as UnsupportedScheme.</summary>
     /// <param name="url">Candidate URL.</param>
     [Theory]
-    [InlineData("http://example.com")]
     [InlineData("ftp://example.com/file")]
     [InlineData("ws://example.com")]
-    public void Validate_NonHttpsScheme_ReturnsNotHttps(string url)
+    [InlineData("gopher://example.com")]
+    public void Validate_NonWebScheme_ReturnsUnsupportedScheme(string url)
     {
-        Assert.Equal(SsrfResult.NotHttps, SsrfValidator.Validate(url));
+        Assert.Equal(SsrfResult.UnsupportedScheme, SsrfValidator.Validate(url));
     }
 
     /// <summary>Private / loopback / link-local IPv4 hosts are rejected.</summary>
