@@ -37,12 +37,14 @@ multi-arch (`linux/amd64,linux/arm64`).
 
 ## Public DNS
 
-Each agent gets a hostname under `agents.donkeywork.dev`:
+Each agent gets a one-level hostname directly under `donkeywork.dev`
+(Cloudflare Universal SSL only covers a single wildcard level, so we
+avoid `*.agents.donkeywork.dev` to skip ordering an Advanced Certificate):
 
 | Agent | Public hostname |
 | --- | --- |
-| decliner | `decliner.agents.donkeywork.dev` |
-| polyglot-translator | `polyglot-translator.agents.donkeywork.dev` |
+| decliner | `decliner-agent.donkeywork.dev` |
+| polyglot-translator | `polyglot-agent.donkeywork.dev` |
 
 Both served via the existing cloudflared tunnel that already fronts
 attic (the same one currently terminating `k3s-agent.donkeywork.dev`).
@@ -76,7 +78,7 @@ Both agents need the same shape:
 | Variable | Value | Source |
 | --- | --- | --- |
 | `AGENT_API_KEY` | Long-lived API key for clients | Secret |
-| `AGENT_EXTERNAL_URL` | `https://decliner.agents.donkeywork.dev` or `https://polyglot-translator.agents.donkeywork.dev` | Deployment env (per-agent) |
+| `AGENT_EXTERNAL_URL` | `https://decliner-agent.donkeywork.dev` or `https://polyglot-agent.donkeywork.dev` | Deployment env (per-agent) |
 | `ANTHROPIC_BASE_URL` | `https://ollama.donkeywork.dev` | Deployment env |
 | `AGENT_MODEL` | `gemma3:4b` | Already baked in via the Dockerfile, override if needed |
 | `AGENT_LLM_BACKEND` | `anthropic` (default — talks to Anthropic-compatible endpoint, not the real Anthropic API) | Default, no override |
@@ -114,7 +116,7 @@ spec:
           ports: [{ containerPort: 8420, name: http }]
           env:
             - name: AGENT_EXTERNAL_URL
-              value: https://decliner.agents.donkeywork.dev
+              value: https://decliner-agent.donkeywork.dev
             - name: ANTHROPIC_BASE_URL
               value: https://ollama.donkeywork.dev
             - name: AGENT_API_KEY
@@ -161,7 +163,7 @@ spec:
           ports: [{ containerPort: 8420, name: http }]
           env:
             - name: AGENT_EXTERNAL_URL
-              value: https://polyglot-translator.agents.donkeywork.dev
+              value: https://polyglot-agent.donkeywork.dev
             - name: ANTHROPIC_BASE_URL
               value: https://ollama.donkeywork.dev
             - name: AGENT_API_KEY
@@ -216,8 +218,8 @@ operator (or that tool) needs to apply once the images are pushed:
       `curl localhost:8080/.well-known/agent-card.json` returns the
       Decliner card; same check for `polyglot-translator`.
 - [ ] **Cloudflare DNS:** create CNAME records for
-      `decliner.agents.donkeywork.dev` and
-      `polyglot-translator.agents.donkeywork.dev`, both pointing at the
+      `decliner-agent.donkeywork.dev` and
+      `polyglot-agent.donkeywork.dev`, both pointing at the
       attic cloudflared tunnel (same target the existing
       `k3s-agent.donkeywork.dev` record uses).
 - [ ] **Cloudflared tunnel ingress:** add two entries to the attic
@@ -226,9 +228,9 @@ operator (or that tool) needs to apply once the images are pushed:
 
       ```yaml
       ingress:
-        - hostname: decliner.agents.donkeywork.dev
+        - hostname: decliner-agent.donkeywork.dev
           service: http://decliner.a2a-explorer.svc.cluster.local
-        - hostname: polyglot-translator.agents.donkeywork.dev
+        - hostname: polyglot-agent.donkeywork.dev
           service: http://polyglot-translator.a2a-explorer.svc.cluster.local
         # ... existing rules below, including the catch-all 404 last
       ```
@@ -236,7 +238,7 @@ operator (or that tool) needs to apply once the images are pushed:
 - [ ] Reload / restart the cloudflared deployment so the new ingress
       rules take effect.
 - [ ] Smoke-test from the public internet:
-      `curl https://decliner.agents.donkeywork.dev/.well-known/agent-card.json`
+      `curl https://decliner-agent.donkeywork.dev/.well-known/agent-card.json`
       and the polyglot equivalent. Confirm the `url` field in each card
       matches its public hostname (i.e. `AGENT_EXTERNAL_URL` plumbing
       worked).
