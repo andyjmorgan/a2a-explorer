@@ -59,6 +59,18 @@ describe("MessageBubble", () => {
     expect(container.querySelector(".bg-gradient-to-r")).toBeNull();
   });
 
+  test("agent role honours single newlines as line breaks", () => {
+    const { container } = render(
+      <MessageBubble
+        message={message(
+          [{ text: "🇩🇪 Hallo\n🇳🇱 Hallo\n🇫🇷 Bonjour\n🇮🇹 Ciao" }],
+          "ROLE_AGENT"
+        )}
+      />
+    );
+    expect(container.querySelectorAll("br").length).toBeGreaterThanOrEqual(3);
+  });
+
   test("user role renders a right-aligned gradient bubble", () => {
     const { container } = render(
       <MessageBubble message={message([{ text: "hi" }], "ROLE_USER")} />

@@ -1,4 +1,5 @@
 import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { CopyButton } from "./CopyButton";
 import { RawViewerButton, type RawTurn } from "./RawViewerButton";
@@ -65,7 +66,7 @@ function PartRenderer({ part, variant }: { part: Part; variant: "user" | "agent"
     }
     return (
       <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-background prose-pre:border prose-pre:border-border prose-code:text-cyan-400 prose-a:text-cyan-400 prose-a:no-underline hover:prose-a:underline [&>*:last-child]:mb-0">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{part.text}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{part.text}</ReactMarkdown>
       </div>
     );
   }
