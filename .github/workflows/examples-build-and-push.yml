@@ -23,7 +23,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  AGENTLINGS_REF: main
+  AGENTLINGS_VERSION: 0.2.1
   DECLINER_IMAGE: ${{ github.repository_owner }}/decliner-agentling
   POLYGLOT_IMAGE: ${{ github.repository_owner }}/polyglot-translator-agentling
 
@@ -66,7 +66,7 @@ jobs:
           cache-from: type=gha,scope=decliner
           cache-to: type=gha,mode=max,scope=decliner
           build-args: |
-            AGENTLINGS_REF=${{ env.AGENTLINGS_REF }}
+            AGENTLINGS_VERSION=${{ env.AGENTLINGS_VERSION }}
 
   build-polyglot:
     name: Build Polyglot Translator Image
@@ -106,4 +106,4 @@ jobs:
           cache-from: type=gha,scope=polyglot
           cache-to: type=gha,mode=max,scope=polyglot
           build-args: |
-            AGENTLINGS_REF=${{ env.AGENTLINGS_REF }}
+            AGENTLINGS_VERSION=${{ env.AGENTLINGS_VERSION }}

@@ -1,12 +1,8 @@
 FROM python:3.12-slim
 
-ARG AGENTLINGS_REF=main
+ARG AGENTLINGS_VERSION=0.2.1
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --no-cache-dir "agentlings @ git+https://github.com/andyjmorgan/DonkeyWork-Agentlings@${AGENTLINGS_REF}"
+RUN pip install --no-cache-dir "agentlings==${AGENTLINGS_VERSION}"
 
 WORKDIR /app
 COPY agent.yaml /app/agent.yaml

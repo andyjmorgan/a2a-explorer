@@ -247,8 +247,8 @@ operator (or that tool) needs to apply once the images are pushed:
 
 ## TODOs / open questions for the human
 
-- The agent images pin the agentlings framework via `AGENTLINGS_REF`
-  (default `main`). Bump to a tagged release once the framework cuts one.
+- The agent images pin the agentlings framework via `AGENTLINGS_VERSION`
+  (default `0.2.1`, installed from PyPI). Bump as new releases ship.
 - Cloudflared tunnel config on attic — confirm the tunnel name and
   config path before the cluster agentling appends ingress rules.
 - ghcr packages default to private when first published. Either flip
