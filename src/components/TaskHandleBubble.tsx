@@ -104,7 +104,7 @@ export function TaskHandleBubble({
   error,
 }: TaskHandleBubbleProps) {
   const [now, setNow] = useState(() => Date.now());
-  const [auto, setAuto] = useState(false);
+  const [auto, setAuto] = useState(true);
   const onRefreshRef = useRef(onRefresh);
   const busyRef = useRef(!!busy);
 
@@ -155,10 +155,12 @@ export function TaskHandleBubble({
           >
             {stateLabel}
           </Badge>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <span aria-hidden className={`h-1 w-1 rounded-full ${theme.pulse} opacity-70`} />
-            checked {ageSeconds}s ago
-          </span>
+          {!isTerminal && (
+            <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <span aria-hidden className={`h-1 w-1 rounded-full ${theme.pulse} opacity-70`} />
+              checked {ageSeconds}s ago
+            </span>
+          )}
         </div>
 
         <div className="space-y-1">
