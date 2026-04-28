@@ -205,6 +205,116 @@ public sealed class AgentA2AControllerTests
         agents.Verify(s => s.TouchLastUsedAsync(agentId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>GetTask returns 200 with the SDK task and touches LastUsedAt for an owned agent.</summary>
+    /// <returns>Async task.</returns>
+    [Fact]
+    public async Task GetTask_returns_200_with_task_when_agent_owned()
+    {
+        // Arrange
+        var agentId = Guid.NewGuid();
+        var task = new AgentTask { Id = "t-1", ContextId = "c-1" };
+        var a2aClient = new Mock<IA2AClient>();
+        a2aClient.Setup(c => c.GetTaskAsync(It.Is<GetTaskRequest>(r => r.Id == "t-1"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(task);
+        var outbound = new Mock<IA2AOutboundFactory>();
+        outbound.Setup(f => f.CreateClientForSavedAgentAsync(agentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(a2aClient.Object);
+        var agents = new Mock<IAgentService>();
+        var controller = new AgentA2AController(outbound.Object, agents.Object, Mock.Of<ILogger<AgentA2AController>>());
+
+        // Act
+        var result = await controller.GetTask(agentId, "t-1", CancellationToken.None);
+
+        // Assert
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(task, ok.Value);
+        agents.Verify(s => s.TouchLastUsedAsync(agentId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    /// <summary>GetTask returns 404 when the saved agent is not owned by the user.</summary>
+    /// <returns>Async task.</returns>
+    [Fact]
+    public async Task GetTask_returns_404_when_agent_not_owned()
+    {
+        // Arrange
+        var outbound = new Mock<IA2AOutboundFactory>();
+        outbound.Setup(f => f.CreateClientForSavedAgentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IA2AClient?)null);
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
+
+        // Act
+        var result = await controller.GetTask(Guid.NewGuid(), "t-1", CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    /// <summary>GetTask returns 502 when the upstream call fails.</summary>
+    /// <returns>Async task.</returns>
+    [Fact]
+    public async Task GetTask_returns_502_on_upstream_failure()
+    {
+        // Arrange
+        var a2aClient = new Mock<IA2AClient>();
+        a2aClient.Setup(c => c.GetTaskAsync(It.IsAny<GetTaskRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("boom"));
+        var outbound = new Mock<IA2AOutboundFactory>();
+        outbound.Setup(f => f.CreateClientForSavedAgentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(a2aClient.Object);
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
+
+        // Act
+        var result = await controller.GetTask(Guid.NewGuid(), "t-1", CancellationToken.None);
+
+        // Assert
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status502BadGateway, obj.StatusCode);
+    }
+
+    /// <summary>CancelTask returns 200 with the updated task and touches LastUsedAt.</summary>
+    /// <returns>Async task.</returns>
+    [Fact]
+    public async Task CancelTask_returns_200_with_updated_task()
+    {
+        // Arrange
+        var agentId = Guid.NewGuid();
+        var task = new AgentTask { Id = "t-1", ContextId = "c-1" };
+        var a2aClient = new Mock<IA2AClient>();
+        a2aClient.Setup(c => c.CancelTaskAsync(It.Is<CancelTaskRequest>(r => r.Id == "t-1"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(task);
+        var outbound = new Mock<IA2AOutboundFactory>();
+        outbound.Setup(f => f.CreateClientForSavedAgentAsync(agentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(a2aClient.Object);
+        var agents = new Mock<IAgentService>();
+        var controller = new AgentA2AController(outbound.Object, agents.Object, Mock.Of<ILogger<AgentA2AController>>());
+
+        // Act
+        var result = await controller.CancelTask(agentId, "t-1", CancellationToken.None);
+
+        // Assert
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(task, ok.Value);
+        agents.Verify(s => s.TouchLastUsedAsync(agentId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    /// <summary>CancelTask returns 404 when the saved agent is not owned by the user.</summary>
+    /// <returns>Async task.</returns>
+    [Fact]
+    public async Task CancelTask_returns_404_when_agent_not_owned()
+    {
+        // Arrange
+        var outbound = new Mock<IA2AOutboundFactory>();
+        outbound.Setup(f => f.CreateClientForSavedAgentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IA2AClient?)null);
+        var controller = new AgentA2AController(outbound.Object, Mock.Of<IAgentService>(), Mock.Of<ILogger<AgentA2AController>>());
+
+        // Act
+        var result = await controller.CancelTask(Guid.NewGuid(), "t-1", CancellationToken.None);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+    }
+
     private static AgentCard BuildCard() => new()
     {
         Name = "sample",

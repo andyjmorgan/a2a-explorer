@@ -171,6 +171,109 @@ public sealed class AgentA2AController : ControllerBase
         }
     }
 
+    /// <summary>Fetches a single task by ID for a saved agent owned by the caller.</summary>
+    /// <param name="id">The saved agent identifier.</param>
+    /// <param name="taskId">The remote A2A task identifier.</param>
+    /// <param name="cancellationToken">Propagates a cancellation signal.</param>
+    /// <returns>200 with the task; 404 when not owned or task missing; 403/502/504 on transport failures.</returns>
+    [HttpGet("{id:guid}/tasks/{taskId}")]
+    [ProducesResponseType(typeof(AgentTask), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    public async Task<IActionResult> GetTask(Guid id, string taskId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = await this.outboundFactory.CreateClientForSavedAgentAsync(id, cancellationToken);
+            if (client is null)
+            {
+                return this.NotFound();
+            }
+
+            var task = await client.GetTaskAsync(new GetTaskRequest { Id = taskId }, cancellationToken);
+            await this.agentService.TouchLastUsedAsync(id, CancellationToken.None).ConfigureAwait(false);
+            return this.Ok(task);
+        }
+        catch (SsrfRejectedException ex)
+        {
+            return this.StatusCode(StatusCodes.Status403Forbidden, new { error = "ssrf_rejected", reason = ex.Reason.ToString() });
+        }
+        catch (A2AException ex) when (ex.ErrorCode == A2AErrorCode.TaskNotFound)
+        {
+            return this.NotFound();
+        }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            this.logger.LogWarning(ex, "Outbound A2A get-task timed out for agent {AgentId} task {TaskId}", id, taskId);
+            return this.StatusCode(StatusCodes.Status504GatewayTimeout, BuildErrorBody("upstream_timeout", ex));
+        }
+        catch (HttpRequestException ex)
+        {
+            this.logger.LogWarning(ex, "Outbound A2A get-task failed for agent {AgentId} task {TaskId}", id, taskId);
+            return this.StatusCode(StatusCodes.Status502BadGateway, BuildErrorBody("upstream_unreachable", ex));
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Unexpected error fetching task {TaskId} for agent {AgentId}", taskId, id);
+            return this.StatusCode(StatusCodes.Status500InternalServerError, BuildErrorBody("internal_error", ex));
+        }
+    }
+
+    /// <summary>
+    /// Cancels a task on the remote agent. Cancel is asynchronous on the agent side, so the returned
+    /// task may still be in <c>working</c> state — the frontend re-polls via <see cref="GetTask"/>.
+    /// </summary>
+    /// <param name="id">The saved agent identifier.</param>
+    /// <param name="taskId">The remote A2A task identifier.</param>
+    /// <param name="cancellationToken">Propagates a cancellation signal.</param>
+    /// <returns>200 with the (possibly still-working) task; 404 when not owned or task missing; 403/502/504 on transport failures.</returns>
+    [HttpPost("{id:guid}/tasks/{taskId}/cancel")]
+    [ProducesResponseType(typeof(AgentTask), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    public async Task<IActionResult> CancelTask(Guid id, string taskId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = await this.outboundFactory.CreateClientForSavedAgentAsync(id, cancellationToken);
+            if (client is null)
+            {
+                return this.NotFound();
+            }
+
+            var task = await client.CancelTaskAsync(new CancelTaskRequest { Id = taskId }, cancellationToken);
+            await this.agentService.TouchLastUsedAsync(id, CancellationToken.None).ConfigureAwait(false);
+            return this.Ok(task);
+        }
+        catch (SsrfRejectedException ex)
+        {
+            return this.StatusCode(StatusCodes.Status403Forbidden, new { error = "ssrf_rejected", reason = ex.Reason.ToString() });
+        }
+        catch (A2AException ex) when (ex.ErrorCode == A2AErrorCode.TaskNotFound)
+        {
+            return this.NotFound();
+        }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            this.logger.LogWarning(ex, "Outbound A2A cancel-task timed out for agent {AgentId} task {TaskId}", id, taskId);
+            return this.StatusCode(StatusCodes.Status504GatewayTimeout, BuildErrorBody("upstream_timeout", ex));
+        }
+        catch (HttpRequestException ex)
+        {
+            this.logger.LogWarning(ex, "Outbound A2A cancel-task failed for agent {AgentId} task {TaskId}", id, taskId);
+            return this.StatusCode(StatusCodes.Status502BadGateway, BuildErrorBody("upstream_unreachable", ex));
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Unexpected error cancelling task {TaskId} for agent {AgentId}", taskId, id);
+            return this.StatusCode(StatusCodes.Status500InternalServerError, BuildErrorBody("internal_error", ex));
+        }
+    }
+
     private static object BuildErrorBody(string code, Exception ex)
     {
         var inner = ex.InnerException;
