@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TaskHandleBubble } from "./TaskHandleBubble";
 import type { Task, TaskState } from "@/types/a2a";
@@ -66,7 +66,7 @@ describe("TaskHandleBubble", () => {
     expect(screen.getByText(friendly(state))).toBeInTheDocument();
   });
 
-  test("shows truncated taskId and a working CopyButton wired to the full id", async () => {
+  test("renders both ids in full and copy buttons that write each id to the clipboard", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText },
@@ -84,25 +84,15 @@ describe("TaskHandleBubble", () => {
       />,
     );
 
-    expect(screen.getByText("task-123…")).toBeInTheDocument();
+    expect(screen.getByText("task-1234567890")).toBeInTheDocument();
+    expect(screen.getByText("ctx-abcdefghij")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /copy message/i }));
-    expect(writeText).toHaveBeenCalledWith("task-1234567890");
-  });
-
-  test("renders the full taskId when it is short enough not to need truncation", () => {
-    render(
-      <TaskHandleBubble
-        taskId="short"
-        contextId="ctx"
-        status="TASK_STATE_WORKING"
-        lastCheckedAt={Date.now()}
-        onRefresh={vi.fn()}
-        onCancel={vi.fn()}
-      />,
-    );
-    expect(screen.getByText("short")).toBeInTheDocument();
-    expect(screen.getByText("ctx ctx")).toBeInTheDocument();
+    const copies = screen.getAllByRole("button", { name: /copy message/i });
+    expect(copies).toHaveLength(2);
+    await userEvent.click(copies[0]);
+    expect(writeText).toHaveBeenLastCalledWith("task-1234567890");
+    await userEvent.click(copies[1]);
+    expect(writeText).toHaveBeenLastCalledWith("ctx-abcdefghij");
   });
 
   test("Refresh button is enabled in non-terminal states and fires onRefresh", async () => {
@@ -266,6 +256,60 @@ describe("TaskHandleBubble", () => {
       />,
     );
     expect(screen.queryByText(/still thinking/)).toBeNull();
+  });
+
+  test("Auto 10s toggle is off by default and only renders in non-terminal states", () => {
+    const { rerender } = render(
+      <TaskHandleBubble
+        taskId="task-1234567890"
+        contextId="ctx-abcdefghij"
+        status="TASK_STATE_WORKING"
+        lastCheckedAt={Date.now()}
+        onRefresh={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    const toggle = screen.getByRole("switch", { name: /auto-refresh every 10 seconds/i });
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+
+    rerender(
+      <TaskHandleBubble
+        taskId="task-1234567890"
+        contextId="ctx-abcdefghij"
+        status="TASK_STATE_COMPLETED"
+        lastCheckedAt={Date.now()}
+        onRefresh={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("switch", { name: /auto-refresh every 10 seconds/i })).toBeNull();
+  });
+
+  test("toggling Auto 10s on calls onRefresh on each 10s interval and stops when toggled off", () => {
+    vi.useFakeTimers();
+    const onRefresh = vi.fn();
+    render(
+      <TaskHandleBubble
+        taskId="task-1234567890"
+        contextId="ctx-abcdefghij"
+        status="TASK_STATE_WORKING"
+        lastCheckedAt={Date.now()}
+        onRefresh={onRefresh}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const toggle = screen.getByRole("switch", { name: /auto-refresh every 10 seconds/i });
+    act(() => { fireEvent.click(toggle); });
+
+    act(() => { vi.advanceTimersByTime(10_000); });
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    act(() => { vi.advanceTimersByTime(10_000); });
+    expect(onRefresh).toHaveBeenCalledTimes(2);
+
+    act(() => { fireEvent.click(toggle); });
+    act(() => { vi.advanceTimersByTime(20_000); });
+    expect(onRefresh).toHaveBeenCalledTimes(2);
   });
 
   test("renders the error banner with text when provided", () => {

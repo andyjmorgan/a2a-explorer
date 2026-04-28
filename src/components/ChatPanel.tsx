@@ -3,15 +3,12 @@ import { AlertCircle, Bot, Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { MessageBubble } from "./MessageBubble";
 import { ArtifactView } from "./ArtifactView";
 import { PulseDots } from "./PulseDots";
 import { TaskHandleBubble } from "./TaskHandleBubble";
 import { a2aApi, ApiError, type SendMessageRequestBody, type SendMessageResponseBody } from "@/lib/api";
 import {
-  TERMINAL_TASK_STATES,
-  friendlyTaskState,
   type Message,
   type Artifact,
   type Task,
@@ -103,8 +100,11 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
         setTaskId(response.task.id);
         setTaskState(response.task.status.state);
 
-        const isTerminal = TERMINAL_TASK_STATES.has(response.task.status.state);
-        if (isTerminal) {
+        // Always surface the task handle so the user can see/copy taskId + ctxId,
+        // refresh, and (when non-terminal) cancel. On terminal+completed, also append
+        // the result message and any artifacts after the handle.
+        appendTaskHandle(response.task);
+        if (response.task.status.state === "TASK_STATE_COMPLETED") {
           const resultMessage =
             response.task.status.message ?? lastAgentMessage(response.task.history);
           if (resultMessage) {
@@ -117,8 +117,6 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
             }
             upsertArtifact(artifact);
           }
-        } else {
-          appendTaskHandle(response.task);
         }
       } else if (response.message) {
         // A bare message response still carries the conversation's contextId — capture it so
@@ -155,49 +153,45 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
   }
 
   function applyTaskUpdate(taskHandleId: string, task: Task) {
-    const isTerminal = TERMINAL_TASK_STATES.has(task.status.state);
     setEntries((prev) => {
       const idx = prev.findIndex(
         (e) => e.kind === "taskHandle" && e.taskId === taskHandleId
       );
       if (idx === -1) return prev;
       const copy = [...prev];
-      if (isTerminal && task.status.state === "TASK_STATE_COMPLETED") {
-        const replacements: Entry[] = [];
+      copy[idx] = {
+        kind: "taskHandle",
+        taskId: task.id,
+        contextId: task.contextId,
+        status: task.status.state,
+        lastCheckedAt: Date.now(),
+        raw: task,
+      };
+      if (task.status.state === "TASK_STATE_COMPLETED") {
+        const inserts: Entry[] = [];
         const resultMessage = task.status.message ?? lastAgentMessage(task.history);
-        if (resultMessage) {
-          replacements.push({ kind: "message", message: resultMessage });
+        const existingMessageIds = new Set(
+          copy.filter((e) => e.kind === "message").map((e) => e.message.messageId)
+        );
+        if (resultMessage && !existingMessageIds.has(resultMessage.messageId)) {
+          inserts.push({ kind: "message", message: resultMessage, raw: { response: { task } } });
         }
         const resultText = resultMessage ? plainText(resultMessage.parts) : null;
+        const existingArtifactIds = new Set(
+          copy.filter((e) => e.kind === "artifact").map((e) => e.artifact.artifactId)
+        );
         for (const artifact of task.artifacts ?? []) {
+          if (existingArtifactIds.has(artifact.artifactId)) continue;
           // Agentlings often duplicate the final message into a text-only artifact; skip those
           // to avoid rendering the same content twice. Non-text artifacts (files, code) still go through.
           if (resultText !== null && artifactIsTextOnly(artifact) && plainText(artifact.parts) === resultText) {
             continue;
           }
-          replacements.push({ kind: "artifact", artifact });
+          inserts.push({ kind: "artifact", artifact });
         }
-        if (replacements.length === 0) {
-          copy[idx] = {
-            kind: "taskHandle",
-            taskId: task.id,
-            contextId: task.contextId,
-            status: task.status.state,
-            lastCheckedAt: Date.now(),
-            raw: task,
-          };
-        } else {
-          copy.splice(idx, 1, ...replacements);
+        if (inserts.length > 0) {
+          copy.splice(idx + 1, 0, ...inserts);
         }
-      } else {
-        copy[idx] = {
-          kind: "taskHandle",
-          taskId: task.id,
-          contextId: task.contextId,
-          status: task.status.state,
-          lastCheckedAt: Date.now(),
-          raw: task,
-        };
       }
       return copy;
     });
@@ -351,7 +345,7 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
               {sending ? <Square className="h-4 w-4" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
-          <div className="max-w-3xl mx-auto mt-2 flex flex-wrap items-center justify-between gap-1.5">
+          <div className="max-w-3xl mx-auto mt-2 flex items-center gap-1.5">
             <button
               type="button"
               role="switch"
@@ -371,13 +365,6 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
               />
               <span>Run as task</span>
             </button>
-            {(taskState || contextId || taskId) && (
-              <div className="flex flex-wrap items-center justify-end gap-1.5">
-                {contextId && <IdChip label="ctx" value={contextId} />}
-                {taskId && <IdChip label="task" value={taskId} />}
-                {taskState && <Badge variant="outline" className="text-[10px]">{friendlyTaskState(taskState)}</Badge>}
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -409,27 +396,3 @@ function messageFromError(err: unknown): string {
   return String(err);
 }
 
-function IdChip({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false);
-  const short = value.length > 8 ? `${value.slice(0, 8)}…` : value;
-  const handleClick = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // ignore
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      title={`${label}: ${value} (click to copy)`}
-      className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-secondary/60 px-2 py-0.5 text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-    >
-      <span className="text-muted-foreground/70">{label}</span>
-      <span>{copied ? "copied" : short}</span>
-    </button>
-  );
-}
