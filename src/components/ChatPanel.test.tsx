@@ -84,7 +84,7 @@ describe("ChatPanel", () => {
     const callArgs = sendMessage.mock.calls[0];
     expect(callArgs[0]).toBe("a1");
     expect(callArgs[1].message.role).toBe("ROLE_USER");
-    expect(callArgs[1].configuration).toEqual({ blocking: true });
+    expect(callArgs[1].configuration).toEqual({ returnImmediately: false });
   });
 
   test("a message-only response is appended without task state", async () => {
@@ -380,7 +380,7 @@ describe("ChatPanel", () => {
     expect(screen.queryByText("TASK_STATE_COMPLETED")).toBeNull();
   });
 
-  test("toggling 'Run as task' sends configuration.blocking=false on the next message", async () => {
+  test("toggling 'Run as task' sends configuration.returnImmediately=true on the next message", async () => {
     sendMessage.mockResolvedValueOnce({
       message: {
         messageId: "agent-r",
@@ -395,6 +395,6 @@ describe("ChatPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: /send/i }));
 
     await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
-    expect(sendMessage.mock.calls[0][1].configuration).toEqual({ blocking: false });
+    expect(sendMessage.mock.calls[0][1].configuration).toEqual({ returnImmediately: true });
   });
 });

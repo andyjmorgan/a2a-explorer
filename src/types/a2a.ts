@@ -205,7 +205,7 @@ export interface SendMessageRequest {
   configuration?: {
     acceptedOutputModes?: string[];
     historyLength?: number;
-    blocking?: boolean;
+    returnImmediately?: boolean;
   };
 }
 
