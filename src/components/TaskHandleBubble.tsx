@@ -182,7 +182,6 @@ export function TaskHandleBubble({
         )}
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {raw && <RawViewerButton raw={{ response: raw }} />}
           <div className="ml-auto flex items-center">
             <button
               type="button"
@@ -228,6 +227,11 @@ export function TaskHandleBubble({
           </div>
         </div>
       </div>
+      {raw && (
+        <div className="mt-1 flex items-center gap-0.5">
+          <RawViewerButton raw={{ response: raw }} />
+        </div>
+      )}
     </div>
   );
 }
