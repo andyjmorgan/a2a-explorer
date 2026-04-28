@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { RefreshCw, X, Hourglass, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "./CopyButton";
-import type { Message, Task, TaskState } from "@/types/a2a";
+import {
+  TERMINAL_TASK_STATES,
+  friendlyTaskState,
+  type Message,
+  type Task,
+  type TaskState,
+} from "@/types/a2a";
 
 interface TaskHandleBubbleProps {
   taskId: string;
@@ -16,17 +22,16 @@ interface TaskHandleBubbleProps {
   error?: string | null;
 }
 
-const TERMINAL: ReadonlySet<TaskState> = new Set(["completed", "failed", "canceled", "rejected"]);
-
 const STATE_VARIANT: Record<TaskState, "default" | "secondary" | "destructive" | "outline" | "ghost"> = {
-  submitted: "outline",
-  working: "secondary",
-  completed: "default",
-  "input-required": "outline",
-  "auth-required": "outline",
-  failed: "destructive",
-  canceled: "destructive",
-  rejected: "destructive",
+  TASK_STATE_UNSPECIFIED: "outline",
+  TASK_STATE_SUBMITTED: "outline",
+  TASK_STATE_WORKING: "secondary",
+  TASK_STATE_COMPLETED: "default",
+  TASK_STATE_INPUT_REQUIRED: "outline",
+  TASK_STATE_AUTH_REQUIRED: "outline",
+  TASK_STATE_FAILED: "destructive",
+  TASK_STATE_CANCELED: "destructive",
+  TASK_STATE_REJECTED: "destructive",
 };
 
 export function TaskHandleBubble({
@@ -47,7 +52,7 @@ export function TaskHandleBubble({
     return () => window.clearInterval(id);
   }, []);
 
-  const isTerminal = TERMINAL.has(status);
+  const isTerminal = TERMINAL_TASK_STATES.has(status);
   const ageSeconds = Math.max(0, Math.round((now - lastCheckedAt) / 1000));
   const shortTask = taskId.length > 8 ? `${taskId.slice(0, 8)}…` : taskId;
   const shortCtx = contextId.length > 8 ? `${contextId.slice(0, 8)}…` : contextId;
@@ -60,7 +65,7 @@ export function TaskHandleBubble({
           <Hourglass className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-xs font-medium text-muted-foreground">Task</span>
           <Badge variant={STATE_VARIANT[status]} className="text-[10px]">
-            {status}
+            {friendlyTaskState(status)}
           </Badge>
           <span className="text-[10px] font-mono text-muted-foreground" title={taskId}>
             {shortTask}

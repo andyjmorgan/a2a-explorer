@@ -9,7 +9,14 @@ import { ArtifactView } from "./ArtifactView";
 import { PulseDots } from "./PulseDots";
 import { TaskHandleBubble } from "./TaskHandleBubble";
 import { a2aApi, ApiError, type SendMessageRequestBody, type SendMessageResponseBody } from "@/lib/api";
-import type { Message, Artifact, Task, TaskState } from "@/types/a2a";
+import {
+  TERMINAL_TASK_STATES,
+  friendlyTaskState,
+  type Message,
+  type Artifact,
+  type Task,
+  type TaskState,
+} from "@/types/a2a";
 import { shadeOf } from "./AgentShade";
 
 interface ChatPanelProps {
@@ -30,13 +37,6 @@ type Entry =
       busy?: boolean;
       error?: string | null;
     };
-
-const TERMINAL_TASK_STATES: ReadonlySet<TaskState> = new Set([
-  "completed",
-  "failed",
-  "canceled",
-  "rejected",
-]);
 
 export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
   const shade = shadeOf(iconShade);
@@ -74,7 +74,7 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
     // same task. For every other state — including `completed` — the next user
     // turn must start a fresh task under the same contextId; reusing the id makes
     // the agent reject with "task is already completed".
-    const continuingTask = taskState === "input-required" && taskId !== undefined;
+    const continuingTask = taskState === "TASK_STATE_INPUT_REQUIRED" && taskId !== undefined;
     const userMessage: Message = {
       messageId: crypto.randomUUID(),
       role: "ROLE_USER",
@@ -105,10 +105,16 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
 
         const isTerminal = TERMINAL_TASK_STATES.has(response.task.status.state);
         if (isTerminal) {
-          if (response.task.status.message) {
-            appendMessage(response.task.status.message, response);
+          const resultMessage =
+            response.task.status.message ?? lastAgentMessage(response.task.history);
+          if (resultMessage) {
+            appendMessage(resultMessage, response);
           }
+          const resultText = resultMessage ? plainText(resultMessage.parts) : null;
           for (const artifact of response.task.artifacts ?? []) {
+            if (resultText !== null && artifactIsTextOnly(artifact) && plainText(artifact.parts) === resultText) {
+              continue;
+            }
             upsertArtifact(artifact);
           }
         } else {
@@ -156,16 +162,20 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
       );
       if (idx === -1) return prev;
       const copy = [...prev];
-      if (isTerminal && task.status.state === "completed") {
+      if (isTerminal && task.status.state === "TASK_STATE_COMPLETED") {
         const replacements: Entry[] = [];
-        if (task.status.message) {
-          replacements.push({ kind: "message", message: task.status.message });
+        const resultMessage = task.status.message ?? lastAgentMessage(task.history);
+        if (resultMessage) {
+          replacements.push({ kind: "message", message: resultMessage });
         }
+        const resultText = resultMessage ? plainText(resultMessage.parts) : null;
         for (const artifact of task.artifacts ?? []) {
-          replacements.push({
-            kind: "message",
-            message: artifactToMessage(artifact, task),
-          });
+          // Agentlings often duplicate the final message into a text-only artifact; skip those
+          // to avoid rendering the same content twice. Non-text artifacts (files, code) still go through.
+          if (resultText !== null && artifactIsTextOnly(artifact) && plainText(artifact.parts) === resultText) {
+            continue;
+          }
+          replacements.push({ kind: "artifact", artifact });
         }
         if (replacements.length === 0) {
           copy[idx] = {
@@ -365,7 +375,7 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
               <div className="flex flex-wrap items-center justify-end gap-1.5">
                 {contextId && <IdChip label="ctx" value={contextId} />}
                 {taskId && <IdChip label="task" value={taskId} />}
-                {taskState && <Badge variant="outline" className="text-[10px]">{taskState}</Badge>}
+                {taskState && <Badge variant="outline" className="text-[10px]">{friendlyTaskState(taskState)}</Badge>}
               </div>
             )}
           </div>
@@ -375,15 +385,22 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
   );
 }
 
-function artifactToMessage(artifact: Artifact, task: Task): Message {
-  return {
-    messageId: `artifact-${artifact.artifactId}`,
-    role: "ROLE_AGENT",
-    contextId: task.contextId,
-    taskId: task.id,
-    parts: artifact.parts,
-    metadata: artifact.name ? { artifactName: artifact.name } : undefined,
-  };
+function lastAgentMessage(history: Message[] | undefined): Message | undefined {
+  if (!history) return undefined;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].role === "ROLE_AGENT") return history[i];
+  }
+  return undefined;
+}
+
+function plainText(parts: { text?: string | null }[]): string {
+  return parts
+    .map((p) => (p.text != null ? p.text : ""))
+    .join("");
+}
+
+function artifactIsTextOnly(artifact: Artifact): boolean {
+  return artifact.parts.length > 0 && artifact.parts.every((p) => p.text != null);
 }
 
 function messageFromError(err: unknown): string {

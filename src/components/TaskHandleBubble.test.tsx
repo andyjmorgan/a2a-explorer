@@ -4,14 +4,23 @@ import userEvent from "@testing-library/user-event";
 import { TaskHandleBubble } from "./TaskHandleBubble";
 import type { Task, TaskState } from "@/types/a2a";
 
-const NON_TERMINAL: TaskState[] = ["submitted", "working"];
-const TERMINAL: TaskState[] = ["completed", "failed", "canceled", "rejected"];
+const NON_TERMINAL: TaskState[] = ["TASK_STATE_SUBMITTED", "TASK_STATE_WORKING"];
+const TERMINAL: TaskState[] = [
+  "TASK_STATE_COMPLETED",
+  "TASK_STATE_FAILED",
+  "TASK_STATE_CANCELED",
+  "TASK_STATE_REJECTED",
+];
+
+function friendly(state: TaskState): string {
+  return state.replace(/^TASK_STATE_/, "").replace(/_/g, "-").toLowerCase();
+}
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: "task-1234567890",
     contextId: "ctx-abcdefghij",
-    status: { state: "working" },
+    status: { state: "TASK_STATE_WORKING" },
     ...overrides,
   };
 }
@@ -40,7 +49,7 @@ describe("TaskHandleBubble", () => {
         onCancel={vi.fn()}
       />,
     );
-    expect(screen.getByText(state)).toBeInTheDocument();
+    expect(screen.getByText(friendly(state))).toBeInTheDocument();
   });
 
   test.each(TERMINAL)("renders status badge for terminal state %s", (state) => {
@@ -54,7 +63,7 @@ describe("TaskHandleBubble", () => {
         onCancel={vi.fn()}
       />,
     );
-    expect(screen.getByText(state)).toBeInTheDocument();
+    expect(screen.getByText(friendly(state))).toBeInTheDocument();
   });
 
   test("shows truncated taskId and a working CopyButton wired to the full id", async () => {
@@ -68,7 +77,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={Date.now()}
         onRefresh={vi.fn()}
         onCancel={vi.fn()}
@@ -86,7 +95,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="short"
         contextId="ctx"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={Date.now()}
         onRefresh={vi.fn()}
         onCancel={vi.fn()}
@@ -102,7 +111,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={Date.now()}
         onRefresh={onRefresh}
         onCancel={vi.fn()}
@@ -121,7 +130,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="completed"
+        status="TASK_STATE_COMPLETED"
         lastCheckedAt={Date.now()}
         onRefresh={onRefresh}
         onCancel={vi.fn()}
@@ -138,7 +147,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={Date.now()}
         onRefresh={vi.fn()}
         onCancel={onCancel}
@@ -174,7 +183,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={start}
         onRefresh={vi.fn()}
         onCancel={vi.fn()}
@@ -203,7 +212,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={Date.now()}
         onRefresh={vi.fn()}
         onCancel={vi.fn()}
@@ -217,7 +226,7 @@ describe("TaskHandleBubble", () => {
   test("renders the status message text from the raw task", () => {
     const raw = makeTask({
       status: {
-        state: "working",
+        state: "TASK_STATE_WORKING",
         message: {
           messageId: "m1",
           role: "ROLE_AGENT",
@@ -229,7 +238,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={Date.now()}
         raw={raw}
         onRefresh={vi.fn()}
@@ -249,9 +258,9 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={Date.now()}
-        raw={makeTask({ status: { state: "working" } })}
+        raw={makeTask({ status: { state: "TASK_STATE_WORKING" } })}
         onRefresh={vi.fn()}
         onCancel={vi.fn()}
       />,
@@ -264,7 +273,7 @@ describe("TaskHandleBubble", () => {
       <TaskHandleBubble
         taskId="task-1234567890"
         contextId="ctx-abcdefghij"
-        status="working"
+        status="TASK_STATE_WORKING"
         lastCheckedAt={Date.now()}
         onRefresh={vi.fn()}
         onCancel={vi.fn()}
