@@ -68,7 +68,8 @@ export interface SendMessageRequestBody {
   configuration?: {
     acceptedOutputModes?: string[];
     historyLength?: number;
-    blocking?: boolean;
+    // A2A v1.0 field name and inverted semantics from v0.3's `blocking`.
+    returnImmediately?: boolean;
   };
   metadata?: Record<string, unknown>;
 }

@@ -84,7 +84,7 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
     };
     const requestBody: SendMessageRequestBody = {
       message: userMessage,
-      configuration: { blocking: blockingMode },
+      configuration: { returnImmediately: !blockingMode },
     };
     setEntries((prev) => [
       ...prev,
