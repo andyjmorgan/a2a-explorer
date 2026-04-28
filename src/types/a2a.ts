@@ -128,15 +128,28 @@ export interface TaskStatus {
   timestamp?: string;
 }
 
+// The A2A .NET SDK serialises TaskState as the raw protobuf enum name — same pattern as Role above.
 export type TaskState =
-  | "submitted"
-  | "working"
-  | "completed"
-  | "failed"
-  | "canceled"
-  | "rejected"
-  | "input-required"
-  | "auth-required";
+  | "TASK_STATE_UNSPECIFIED"
+  | "TASK_STATE_SUBMITTED"
+  | "TASK_STATE_WORKING"
+  | "TASK_STATE_COMPLETED"
+  | "TASK_STATE_FAILED"
+  | "TASK_STATE_CANCELED"
+  | "TASK_STATE_REJECTED"
+  | "TASK_STATE_INPUT_REQUIRED"
+  | "TASK_STATE_AUTH_REQUIRED";
+
+export const TERMINAL_TASK_STATES: ReadonlySet<TaskState> = new Set<TaskState>([
+  "TASK_STATE_COMPLETED",
+  "TASK_STATE_FAILED",
+  "TASK_STATE_CANCELED",
+  "TASK_STATE_REJECTED",
+]);
+
+export function friendlyTaskState(state: TaskState): string {
+  return state.replace(/^TASK_STATE_/, "").replace(/_/g, "-").toLowerCase();
+}
 
 export interface Artifact {
   artifactId: string;

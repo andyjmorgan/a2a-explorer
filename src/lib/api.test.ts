@@ -100,7 +100,7 @@ describe("a2aApi", () => {
 
   test("sendMessage POSTs the message body and returns the SDK envelope", async () => {
     const envelope = {
-      task: { id: "t", contextId: "c", status: { state: "completed" } },
+      task: { id: "t", contextId: "c", status: { state: "TASK_STATE_COMPLETED" } },
     };
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(envelope), {

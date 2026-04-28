@@ -57,7 +57,7 @@ describe("ChatPanel", () => {
         id: "t1",
         contextId: "c1",
         status: {
-          state: "completed",
+          state: "TASK_STATE_COMPLETED",
           message: {
             messageId: "agent-1",
             role: "ROLE_AGENT",
@@ -173,7 +173,7 @@ describe("ChatPanel", () => {
       task: {
         id: "task-running-001",
         contextId: "ctx-running-001",
-        status: { state: "working" },
+        status: { state: "TASK_STATE_WORKING" },
       },
     });
 
@@ -192,14 +192,14 @@ describe("ChatPanel", () => {
       task: {
         id: "task-running-002",
         contextId: "ctx-002",
-        status: { state: "working" },
+        status: { state: "TASK_STATE_WORKING" },
       },
     });
     getTask.mockResolvedValueOnce({
       id: "task-running-002",
       contextId: "ctx-002",
       status: {
-        state: "completed",
+        state: "TASK_STATE_COMPLETED",
         message: {
           messageId: "agent-final",
           role: "ROLE_AGENT",
@@ -231,14 +231,14 @@ describe("ChatPanel", () => {
       task: {
         id: "task-running-003",
         contextId: "ctx-003",
-        status: { state: "working" },
+        status: { state: "TASK_STATE_WORKING" },
       },
     });
     getTask.mockResolvedValueOnce({
       id: "task-running-003",
       contextId: "ctx-003",
       status: {
-        state: "failed",
+        state: "TASK_STATE_FAILED",
         message: {
           messageId: "agent-fail",
           role: "ROLE_AGENT",
@@ -267,7 +267,7 @@ describe("ChatPanel", () => {
       task: {
         id: "task-running-005",
         contextId: "ctx-005",
-        status: { state: "working" },
+        status: { state: "TASK_STATE_WORKING" },
       },
     });
     getTask.mockRejectedValueOnce(new ApiError(503, "no good"));
@@ -288,13 +288,13 @@ describe("ChatPanel", () => {
       task: {
         id: "task-running-004",
         contextId: "ctx-004",
-        status: { state: "working" },
+        status: { state: "TASK_STATE_WORKING" },
       },
     });
     cancelTask.mockResolvedValueOnce({
       id: "task-running-004",
       contextId: "ctx-004",
-      status: { state: "canceled" },
+      status: { state: "TASK_STATE_CANCELED" },
     });
 
     render(<ChatPanel agentId="a1" />);
@@ -310,6 +310,74 @@ describe("ChatPanel", () => {
       expect(screen.queryByRole("button", { name: /cancel task/i })).toBeNull(),
     );
     expect(screen.getAllByText("canceled").length).toBeGreaterThan(0);
+  });
+
+  test("Refresh on a completed task with null status.message falls back to history's last agent message", async () => {
+    sendMessage.mockResolvedValueOnce({
+      task: {
+        id: "task-running-006",
+        contextId: "ctx-006",
+        status: { state: "TASK_STATE_WORKING" },
+      },
+    });
+    // Mirror the real shape: status.message is null, the result lives in history (and is also
+    // duplicated as a text-only artifact, which we should dedupe to avoid double-rendering).
+    getTask.mockResolvedValueOnce({
+      id: "task-running-006",
+      contextId: "ctx-006",
+      status: { state: "TASK_STATE_COMPLETED", message: null },
+      history: [
+        {
+          messageId: "agent-final",
+          role: "ROLE_AGENT",
+          parts: [{ text: "90 seconds have passed!" }],
+        },
+      ],
+      artifacts: [
+        {
+          artifactId: "art-dupe",
+          parts: [{ text: "90 seconds have passed!" }],
+        },
+      ],
+    });
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "wait");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    const refresh = await screen.findByRole("button", { name: /refresh task/i });
+    await userEvent.click(refresh);
+
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /refresh task/i })).toBeNull(),
+    );
+    // Result text rendered exactly once (history fallback used; duplicate artifact deduped).
+    expect(screen.getAllByText("90 seconds have passed!")).toHaveLength(1);
+  });
+
+  test("Completed task badge in the footer renders the friendly state label, not the raw enum", async () => {
+    sendMessage.mockResolvedValueOnce({
+      task: {
+        id: "t-friendly",
+        contextId: "c-friendly",
+        status: {
+          state: "TASK_STATE_COMPLETED",
+          message: {
+            messageId: "agent-friendly",
+            role: "ROLE_AGENT",
+            parts: [{ text: "ok" }],
+          },
+        },
+      },
+    });
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "go");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    await waitFor(() => expect(screen.getByText("ok")).toBeInTheDocument());
+    expect(screen.getByText("completed")).toBeInTheDocument();
+    expect(screen.queryByText("TASK_STATE_COMPLETED")).toBeNull();
   });
 
   test("toggling 'Run as task' sends configuration.blocking=false on the next message", async () => {
