@@ -12,14 +12,20 @@ vi.mock("@/lib/api", async () => {
     a2aApi: {
       ...actual.a2aApi,
       sendMessage: vi.fn(),
+      getTask: vi.fn(),
+      cancelTask: vi.fn(),
     },
   };
 });
 
 const sendMessage = a2aApi.sendMessage as ReturnType<typeof vi.fn>;
+const getTask = a2aApi.getTask as ReturnType<typeof vi.fn>;
+const cancelTask = a2aApi.cancelTask as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   sendMessage.mockReset();
+  getTask.mockReset();
+  cancelTask.mockReset();
   // happy-dom usually provides crypto.randomUUID; if it doesn't, bolt one on so the component
   // can construct user message ids without crashing.
   if (typeof globalThis.crypto?.randomUUID !== "function") {
@@ -160,5 +166,167 @@ describe("ChatPanel", () => {
     rerender(<ChatPanel agentId="a2" />);
     expect(screen.queryByText("first agent reply")).toBeNull();
     expect(screen.getByText(/say hi to your agent/i)).toBeInTheDocument();
+  });
+
+  test("non-terminal task response renders a TaskHandleBubble", async () => {
+    sendMessage.mockResolvedValueOnce({
+      task: {
+        id: "task-running-001",
+        contextId: "ctx-running-001",
+        status: { state: "working" },
+      },
+    });
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "kick it off");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    expect(await screen.findByRole("button", { name: /refresh task/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cancel task/i })).toBeInTheDocument();
+    // The TaskHandleBubble itself surfaces the working state badge.
+    expect(screen.getAllByText("working").length).toBeGreaterThan(0);
+  });
+
+  test("Refresh on a completed task replaces the bubble with status message + artifact entries", async () => {
+    sendMessage.mockResolvedValueOnce({
+      task: {
+        id: "task-running-002",
+        contextId: "ctx-002",
+        status: { state: "working" },
+      },
+    });
+    getTask.mockResolvedValueOnce({
+      id: "task-running-002",
+      contextId: "ctx-002",
+      status: {
+        state: "completed",
+        message: {
+          messageId: "agent-final",
+          role: "ROLE_AGENT",
+          parts: [{ text: "all done" }],
+        },
+      },
+      artifacts: [
+        { artifactId: "art-1", name: "summary.txt", parts: [{ text: "the summary" }] },
+      ],
+    });
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "go");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    const refresh = await screen.findByRole("button", { name: /refresh task/i });
+    await userEvent.click(refresh);
+
+    await waitFor(() => expect(getTask).toHaveBeenCalledWith("a1", "task-running-002"));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /refresh task/i })).toBeNull(),
+    );
+    expect(screen.getByText("all done")).toBeInTheDocument();
+    expect(screen.getByText("the summary")).toBeInTheDocument();
+  });
+
+  test("Refresh on a failed task keeps the bubble and surfaces the failure status message", async () => {
+    sendMessage.mockResolvedValueOnce({
+      task: {
+        id: "task-running-003",
+        contextId: "ctx-003",
+        status: { state: "working" },
+      },
+    });
+    getTask.mockResolvedValueOnce({
+      id: "task-running-003",
+      contextId: "ctx-003",
+      status: {
+        state: "failed",
+        message: {
+          messageId: "agent-fail",
+          role: "ROLE_AGENT",
+          parts: [{ text: "boom" }],
+        },
+      },
+    });
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "fail me");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    const refresh = await screen.findByRole("button", { name: /refresh task/i });
+    await userEvent.click(refresh);
+
+    await waitFor(() => expect(getTask).toHaveBeenCalledWith("a1", "task-running-003"));
+    // Bubble is still around (refresh button still rendered) and shows the failed badge + message.
+    expect(screen.getByRole("button", { name: /refresh task/i })).toBeInTheDocument();
+    // 'failed' appears both inside the bubble badge and the bottom task-state chip.
+    expect(screen.getAllByText("failed").length).toBeGreaterThan(0);
+    expect(screen.getByText("boom")).toBeInTheDocument();
+  });
+
+  test("Refresh failure surfaces the error inside the bubble without removing it", async () => {
+    sendMessage.mockResolvedValueOnce({
+      task: {
+        id: "task-running-005",
+        contextId: "ctx-005",
+        status: { state: "working" },
+      },
+    });
+    getTask.mockRejectedValueOnce(new ApiError(503, "no good"));
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "go");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    const refresh = await screen.findByRole("button", { name: /refresh task/i });
+    await userEvent.click(refresh);
+
+    await waitFor(() => expect(screen.getByText(/503: no good/)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /refresh task/i })).toBeInTheDocument();
+  });
+
+  test("Cancel calls cancelTask with the right args and updates the bubble status", async () => {
+    sendMessage.mockResolvedValueOnce({
+      task: {
+        id: "task-running-004",
+        contextId: "ctx-004",
+        status: { state: "working" },
+      },
+    });
+    cancelTask.mockResolvedValueOnce({
+      id: "task-running-004",
+      contextId: "ctx-004",
+      status: { state: "canceled" },
+    });
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "stop");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    const cancel = await screen.findByRole("button", { name: /cancel task/i });
+    await userEvent.click(cancel);
+
+    await waitFor(() => expect(cancelTask).toHaveBeenCalledWith("a1", "task-running-004"));
+    // Cancel button should now be hidden (terminal state).
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /cancel task/i })).toBeNull(),
+    );
+    expect(screen.getAllByText("canceled").length).toBeGreaterThan(0);
+  });
+
+  test("toggling 'Run as task' sends configuration.blocking=false on the next message", async () => {
+    sendMessage.mockResolvedValueOnce({
+      message: {
+        messageId: "agent-r",
+        role: "ROLE_AGENT",
+        parts: [{ text: "ok" }],
+      },
+    });
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.click(screen.getByRole("switch", { name: /run as task/i }));
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "go");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+    expect(sendMessage.mock.calls[0][1].configuration).toEqual({ blocking: false });
   });
 });
