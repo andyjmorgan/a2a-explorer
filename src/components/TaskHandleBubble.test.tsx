@@ -258,7 +258,7 @@ describe("TaskHandleBubble", () => {
     expect(screen.queryByText(/still thinking/)).toBeNull();
   });
 
-  test("Auto 10s toggle is off by default and only renders in non-terminal states", () => {
+  test("Auto 10s toggle is on by default and only renders in non-terminal states", () => {
     const { rerender } = render(
       <TaskHandleBubble
         taskId="task-1234567890"
@@ -270,7 +270,7 @@ describe("TaskHandleBubble", () => {
       />,
     );
     const toggle = screen.getByRole("switch", { name: /auto-refresh every 10 seconds/i });
-    expect(toggle).toHaveAttribute("aria-checked", "false");
+    expect(toggle).toHaveAttribute("aria-checked", "true");
 
     rerender(
       <TaskHandleBubble
@@ -285,7 +285,7 @@ describe("TaskHandleBubble", () => {
     expect(screen.queryByRole("switch", { name: /auto-refresh every 10 seconds/i })).toBeNull();
   });
 
-  test("toggling Auto 10s on calls onRefresh on each 10s interval and stops when toggled off", () => {
+  test("Auto 10s fires onRefresh every 10s by default and stops when toggled off", () => {
     vi.useFakeTimers();
     const onRefresh = vi.fn();
     render(
@@ -299,14 +299,12 @@ describe("TaskHandleBubble", () => {
       />,
     );
 
-    const toggle = screen.getByRole("switch", { name: /auto-refresh every 10 seconds/i });
-    act(() => { fireEvent.click(toggle); });
-
     act(() => { vi.advanceTimersByTime(10_000); });
     expect(onRefresh).toHaveBeenCalledTimes(1);
     act(() => { vi.advanceTimersByTime(10_000); });
     expect(onRefresh).toHaveBeenCalledTimes(2);
 
+    const toggle = screen.getByRole("switch", { name: /auto-refresh every 10 seconds/i });
     act(() => { fireEvent.click(toggle); });
     act(() => { vi.advanceTimersByTime(20_000); });
     expect(onRefresh).toHaveBeenCalledTimes(2);
