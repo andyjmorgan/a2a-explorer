@@ -187,7 +187,7 @@ describe("ChatPanel", () => {
     expect(screen.getAllByText("working").length).toBeGreaterThan(0);
   });
 
-  test("Refresh on a completed task replaces the bubble with status message + artifact entries", async () => {
+  test("Refresh on a completed task keeps the bubble and appends status message + artifact entries", async () => {
     sendMessage.mockResolvedValueOnce({
       task: {
         id: "task-running-002",
@@ -219,11 +219,50 @@ describe("ChatPanel", () => {
     await userEvent.click(refresh);
 
     await waitFor(() => expect(getTask).toHaveBeenCalledWith("a1", "task-running-002"));
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: /refresh task/i })).toBeNull(),
-    );
+    // Bubble persists post-completion (so the user can still see/copy task ids).
+    expect(screen.getByRole("button", { name: /refresh task/i })).toBeInTheDocument();
+    // Cancel disappears once terminal.
+    expect(screen.queryByRole("button", { name: /cancel task/i })).toBeNull();
+    // Result + artifact appended.
     expect(screen.getByText("all done")).toBeInTheDocument();
     expect(screen.getByText("the summary")).toBeInTheDocument();
+    // Bubble badge reflects completed.
+    expect(screen.getAllByText("completed").length).toBeGreaterThan(0);
+  });
+
+  test("Re-refreshing a completed task does not duplicate the appended message", async () => {
+    sendMessage.mockResolvedValueOnce({
+      task: {
+        id: "task-running-007",
+        contextId: "ctx-007",
+        status: { state: "TASK_STATE_WORKING" },
+      },
+    });
+    const completed = {
+      id: "task-running-007",
+      contextId: "ctx-007",
+      status: {
+        state: "TASK_STATE_COMPLETED" as const,
+        message: {
+          messageId: "agent-once",
+          role: "ROLE_AGENT" as const,
+          parts: [{ text: "exactly once" }],
+        },
+      },
+    };
+    getTask.mockResolvedValueOnce(completed).mockResolvedValueOnce(completed);
+
+    render(<ChatPanel agentId="a1" />);
+    await userEvent.type(screen.getByPlaceholderText(/send a message/i), "go");
+    await userEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    const refresh = await screen.findByRole("button", { name: /refresh task/i });
+    await userEvent.click(refresh);
+    await waitFor(() => expect(screen.getByText("exactly once")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /refresh task/i }));
+    await waitFor(() => expect(getTask).toHaveBeenCalledTimes(2));
+    expect(screen.getAllByText("exactly once")).toHaveLength(1);
   });
 
   test("Refresh on a failed task keeps the bubble and surfaces the failure status message", async () => {
@@ -348,10 +387,9 @@ describe("ChatPanel", () => {
     const refresh = await screen.findByRole("button", { name: /refresh task/i });
     await userEvent.click(refresh);
 
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: /refresh task/i })).toBeNull(),
-    );
-    // Result text rendered exactly once (history fallback used; duplicate artifact deduped).
+    await waitFor(() => expect(getTask).toHaveBeenCalledWith("a1", "task-running-006"));
+    // Bubble persists; result text rendered exactly once (history fallback used, duplicate artifact deduped).
+    expect(screen.getByRole("button", { name: /refresh task/i })).toBeInTheDocument();
     expect(screen.getAllByText("90 seconds have passed!")).toHaveLength(1);
   });
 
