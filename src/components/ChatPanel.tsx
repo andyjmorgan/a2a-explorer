@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { MessageBubble } from "./MessageBubble";
 import { ArtifactView } from "./ArtifactView";
 import { PulseDots } from "./PulseDots";
+import { TaskHandleBubble } from "./TaskHandleBubble";
 import { a2aApi, ApiError, type SendMessageRequestBody, type SendMessageResponseBody } from "@/lib/api";
-import type { Message, Artifact, TaskState } from "@/types/a2a";
+import type { Message, Artifact, Task, TaskState } from "@/types/a2a";
 import { shadeOf } from "./AgentShade";
 
 interface ChatPanelProps {
@@ -18,7 +19,24 @@ interface ChatPanelProps {
 
 type Entry =
   | { kind: "message"; message: Message; raw?: { request?: SendMessageRequestBody; response?: SendMessageResponseBody } }
-  | { kind: "artifact"; artifact: Artifact };
+  | { kind: "artifact"; artifact: Artifact }
+  | {
+      kind: "taskHandle";
+      taskId: string;
+      contextId: string;
+      status: TaskState;
+      lastCheckedAt: number;
+      raw?: Task;
+      busy?: boolean;
+      error?: string | null;
+    };
+
+const TERMINAL_TASK_STATES: ReadonlySet<TaskState> = new Set([
+  "completed",
+  "failed",
+  "canceled",
+  "rejected",
+]);
 
 export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
   const shade = shadeOf(iconShade);
@@ -29,6 +47,7 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
   const [contextId, setContextId] = useState<string | undefined>(undefined);
   const [taskId, setTaskId] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [blockingMode, setBlockingMode] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Reset whenever the selected agent changes.
@@ -65,7 +84,7 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
     };
     const requestBody: SendMessageRequestBody = {
       message: userMessage,
-      configuration: { blocking: true },
+      configuration: { blocking: blockingMode },
     };
     setEntries((prev) => [
       ...prev,
@@ -83,11 +102,17 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
         setContextId(response.task.contextId);
         setTaskId(response.task.id);
         setTaskState(response.task.status.state);
-        if (response.task.status.message) {
-          appendMessage(response.task.status.message, response);
-        }
-        for (const artifact of response.task.artifacts ?? []) {
-          upsertArtifact(artifact);
+
+        const isTerminal = TERMINAL_TASK_STATES.has(response.task.status.state);
+        if (isTerminal) {
+          if (response.task.status.message) {
+            appendMessage(response.task.status.message, response);
+          }
+          for (const artifact of response.task.artifacts ?? []) {
+            upsertArtifact(artifact);
+          }
+        } else {
+          appendTaskHandle(response.task);
         }
       } else if (response.message) {
         // A bare message response still carries the conversation's contextId — capture it so
@@ -101,7 +126,109 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
     } finally {
       setSending(false);
     }
-  }, [agentId, contextId, input, sending, taskId, taskState]);
+  }, [agentId, blockingMode, contextId, input, sending, taskId, taskState]);
+
+  function appendTaskHandle(task: Task) {
+    setEntries((prev) => {
+      const idx = prev.findIndex(
+        (e) => e.kind === "taskHandle" && e.taskId === task.id
+      );
+      const handle: Entry = {
+        kind: "taskHandle",
+        taskId: task.id,
+        contextId: task.contextId,
+        status: task.status.state,
+        lastCheckedAt: Date.now(),
+        raw: task,
+      };
+      if (idx === -1) return [...prev, handle];
+      const copy = [...prev];
+      copy[idx] = handle;
+      return copy;
+    });
+  }
+
+  function applyTaskUpdate(taskHandleId: string, task: Task) {
+    const isTerminal = TERMINAL_TASK_STATES.has(task.status.state);
+    setEntries((prev) => {
+      const idx = prev.findIndex(
+        (e) => e.kind === "taskHandle" && e.taskId === taskHandleId
+      );
+      if (idx === -1) return prev;
+      const copy = [...prev];
+      if (isTerminal && task.status.state === "completed") {
+        const replacements: Entry[] = [];
+        if (task.status.message) {
+          replacements.push({ kind: "message", message: task.status.message });
+        }
+        for (const artifact of task.artifacts ?? []) {
+          replacements.push({
+            kind: "message",
+            message: artifactToMessage(artifact, task),
+          });
+        }
+        if (replacements.length === 0) {
+          copy[idx] = {
+            kind: "taskHandle",
+            taskId: task.id,
+            contextId: task.contextId,
+            status: task.status.state,
+            lastCheckedAt: Date.now(),
+            raw: task,
+          };
+        } else {
+          copy.splice(idx, 1, ...replacements);
+        }
+      } else {
+        copy[idx] = {
+          kind: "taskHandle",
+          taskId: task.id,
+          contextId: task.contextId,
+          status: task.status.state,
+          lastCheckedAt: Date.now(),
+          raw: task,
+        };
+      }
+      return copy;
+    });
+    setTaskState(task.status.state);
+  }
+
+  function setHandleBusy(taskHandleId: string, busy: boolean, errorText: string | null = null) {
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.kind === "taskHandle" && e.taskId === taskHandleId
+          ? { ...e, busy, error: errorText }
+          : e
+      )
+    );
+  }
+
+  const refreshTask = useCallback(
+    async (taskHandleId: string) => {
+      setHandleBusy(taskHandleId, true, null);
+      try {
+        const task = await a2aApi.getTask(agentId, taskHandleId);
+        applyTaskUpdate(taskHandleId, task);
+      } catch (err) {
+        setHandleBusy(taskHandleId, false, messageFromError(err));
+      }
+    },
+    [agentId]
+  );
+
+  const cancelTaskHandle = useCallback(
+    async (taskHandleId: string) => {
+      setHandleBusy(taskHandleId, true, null);
+      try {
+        const task = await a2aApi.cancelTask(agentId, taskHandleId);
+        applyTaskUpdate(taskHandleId, task);
+      } catch (err) {
+        setHandleBusy(taskHandleId, false, messageFromError(err));
+      }
+    },
+    [agentId]
+  );
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -145,15 +272,32 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
               </p>
             </div>
           )}
-          {entries.map((entry, i) =>
-            entry.kind === "message" ? (
-              <MessageBubble key={`m-${i}`} message={entry.message} raw={entry.raw} />
-            ) : (
-              <div key={`a-${entry.artifact.artifactId}`} className="px-2 sm:px-6 py-1.5">
-                <ArtifactView artifact={entry.artifact} />
-              </div>
-            )
-          )}
+          {entries.map((entry, i) => {
+            if (entry.kind === "message") {
+              return <MessageBubble key={`m-${i}`} message={entry.message} raw={entry.raw} />;
+            }
+            if (entry.kind === "artifact") {
+              return (
+                <div key={`a-${entry.artifact.artifactId}`} className="px-2 sm:px-6 py-1.5">
+                  <ArtifactView artifact={entry.artifact} />
+                </div>
+              );
+            }
+            return (
+              <TaskHandleBubble
+                key={`t-${entry.taskId}`}
+                taskId={entry.taskId}
+                contextId={entry.contextId}
+                status={entry.status}
+                lastCheckedAt={entry.lastCheckedAt}
+                raw={entry.raw}
+                busy={entry.busy}
+                error={entry.error ?? null}
+                onRefresh={() => refreshTask(entry.taskId)}
+                onCancel={() => cancelTaskHandle(entry.taskId)}
+              />
+            );
+          })}
           {sending && (
             <div className="flex justify-start px-2 sm:px-6 py-2">
               <div className="flex items-center px-3 py-2 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
@@ -197,17 +341,49 @@ export function ChatPanel({ agentId, iconShade }: ChatPanelProps) {
               {sending ? <Square className="h-4 w-4" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
-          {(taskState || contextId || taskId) && (
-            <div className="max-w-3xl mx-auto mt-2 flex flex-wrap items-center justify-end gap-1.5">
-              {contextId && <IdChip label="ctx" value={contextId} />}
-              {taskId && <IdChip label="task" value={taskId} />}
-              {taskState && <Badge variant="outline" className="text-[10px]">{taskState}</Badge>}
-            </div>
-          )}
+          <div className="max-w-3xl mx-auto mt-2 flex flex-wrap items-center justify-between gap-1.5">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!blockingMode}
+              onClick={() => setBlockingMode((v) => !v)}
+              disabled={sending}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors disabled:opacity-50 ${
+                !blockingMode
+                  ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/15"
+                  : "border-border/60 bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  !blockingMode ? "bg-cyan-400" : "bg-muted-foreground/40"
+                }`}
+              />
+              <span>Run as task</span>
+            </button>
+            {(taskState || contextId || taskId) && (
+              <div className="flex flex-wrap items-center justify-end gap-1.5">
+                {contextId && <IdChip label="ctx" value={contextId} />}
+                {taskId && <IdChip label="task" value={taskId} />}
+                {taskState && <Badge variant="outline" className="text-[10px]">{taskState}</Badge>}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function artifactToMessage(artifact: Artifact, task: Task): Message {
+  return {
+    messageId: `artifact-${artifact.artifactId}`,
+    role: "ROLE_AGENT",
+    contextId: task.contextId,
+    taskId: task.id,
+    parts: artifact.parts,
+    metadata: artifact.name ? { artifactName: artifact.name } : undefined,
+  };
 }
 
 function messageFromError(err: unknown): string {

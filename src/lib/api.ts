@@ -6,7 +6,7 @@ import type {
   TestConnectionRequest,
   UpdateAgentRequest,
 } from "@/types/saved-agent";
-import type { AgentCard, Message } from "@/types/a2a";
+import type { AgentCard, Message, Task } from "@/types/a2a";
 
 const AGENTS_BASE = "/api/v1/agents";
 
@@ -99,6 +99,18 @@ export const a2aApi = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+      })
+    ),
+
+  getTask: async (id: string, taskId: string): Promise<Task> =>
+    json(
+      await fetchWithAuth(`${AGENTS_BASE}/${id}/tasks/${encodeURIComponent(taskId)}`)
+    ),
+
+  cancelTask: async (id: string, taskId: string): Promise<Task> =>
+    json(
+      await fetchWithAuth(`${AGENTS_BASE}/${id}/tasks/${encodeURIComponent(taskId)}/cancel`, {
+        method: "POST",
       })
     ),
 };
