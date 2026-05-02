@@ -51,3 +51,4 @@ sleep:
 
 telemetry:
   enabled: false
+  service_name: polyglot-translator

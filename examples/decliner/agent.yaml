@@ -86,3 +86,4 @@ sleep:
 
 telemetry:
   enabled: false
+  service_name: decliner
