@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-ARG AGENTLINGS_VERSION=0.2.3
+ARG AGENTLINGS_VERSION=0.6.0
 
 RUN pip install --no-cache-dir "agentlings==${AGENTLINGS_VERSION}"
 

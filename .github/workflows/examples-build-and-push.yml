@@ -23,7 +23,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  AGENTLINGS_VERSION: 0.2.1
+  AGENTLINGS_VERSION: 0.6.0
   DECLINER_IMAGE: ${{ github.repository_owner }}/decliner-agentling
   POLYGLOT_IMAGE: ${{ github.repository_owner }}/polyglot-translator-agentling
 
