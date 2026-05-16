@@ -2,7 +2,13 @@
 
 Two reference [Agentlings](https://github.com/andyjmorgan/DonkeyWork-Agentlings)
 agents wired up for deployment to the **attic** k3s cluster. Both run on
-`gemma3:4b` via the Ollama instance at `https://ollama.donkeywork.dev`.
+`claude-haiku-4-5` routed through the **Sluice Gateway** at
+`https://sluice.donkeywork.dev`. Sluice is a multi-provider LLM proxy
+running on the office cluster; it exposes an Anthropic-compatible
+`/v1/messages` endpoint and dispatches `claude-*` model names to the real
+Anthropic API using its own upstream credentials, so the agentling pods
+never see (or need) an Anthropic key directly — they only need a Sluice
+API key.
 
 ## Agents
 
@@ -61,12 +67,15 @@ A few notes carried over from the
 - `AGENT_EXTERNAL_URL` controls the URL embedded in the agent card. Set
   it to the public hostname or the card will advertise the in-cluster
   pod address — fatal for any external A2A client.
-- `gemma3:4b` is reached through Ollama's Anthropic-compatible
-  `/v1/messages` endpoint. The framework env var that points at it is
-  **`ANTHROPIC_BASE_URL`** (confirmed in the framework's `config.py`
-  and README). Set it to `https://ollama.donkeywork.dev` and pair with
-  `AGENT_MODEL=gemma3:4b`. `ANTHROPIC_API_KEY` is unused but the SDK
-  defaults it to `"unset"`; Ollama ignores it.
+- The framework only speaks the Anthropic Messages protocol. The env
+  var that points it at a different host is **`ANTHROPIC_BASE_URL`**
+  (confirmed in the framework's `config.py` and README). Set it to
+  `https://sluice.donkeywork.dev` and pair with `AGENT_MODEL=claude-haiku-4-5`
+  — Sluice exposes `/v1/messages` and routes `claude-*` names to
+  `api.anthropic.com` via its own upstream credentials. The Anthropic
+  SDK sends the per-pod Sluice token in the `x-api-key` header (sourced
+  from `ANTHROPIC_API_KEY`), which Sluice validates against its issued
+  keys — the real Anthropic key never leaves the gateway.
 - `sleep.enabled: false` is already set in both YAMLs because Ollama
   has no batches API. Don't flip it on.
 - Default port is `8420`.
@@ -79,18 +88,23 @@ Both agents need the same shape:
 | --- | --- | --- |
 | `AGENT_API_KEY` | Long-lived API key for clients | Secret |
 | `AGENT_EXTERNAL_URL` | `https://decliner-agent.donkeywork.dev` or `https://polyglot-agent.donkeywork.dev` | Deployment env (per-agent) |
-| `ANTHROPIC_BASE_URL` | `https://ollama.donkeywork.dev` | Deployment env |
-| `AGENT_MODEL` | `gemma3:4b` | Already baked in via the Dockerfile, override if needed |
-| `AGENT_LLM_BACKEND` | `anthropic` (default — talks to Anthropic-compatible endpoint, not the real Anthropic API) | Default, no override |
+| `ANTHROPIC_BASE_URL` | `https://sluice.donkeywork.dev` | Deployment env |
+| `ANTHROPIC_API_KEY` | Sluice-issued Bearer key (`sk_live_…`) — passes upstream auth at the gateway | Secret |
+| `AGENT_MODEL` | `claude-haiku-4-5` | Already baked in via the Dockerfile, override if needed |
+| `AGENT_LLM_BACKEND` | `anthropic` (default — Anthropic Messages protocol, terminated by Sluice rather than `api.anthropic.com`) | Default, no override |
 
-`AGENT_API_KEY` should be a Kubernetes secret. Suggested layout:
+Both keys belong in a Kubernetes secret. Export `SLUICE_API_KEY` first
+(grab the current value from the cluster operator or from the
+`sluice-gateway` namespace) and then:
 
 ```bash
 kubectl -n a2a-explorer create secret generic decliner-secrets \
-  --from-literal=AGENT_API_KEY="$(openssl rand -hex 32)"
+  --from-literal=AGENT_API_KEY="$(openssl rand -hex 32)" \
+  --from-literal=ANTHROPIC_API_KEY="$SLUICE_API_KEY"
 
 kubectl -n a2a-explorer create secret generic polyglot-translator-secrets \
-  --from-literal=AGENT_API_KEY="$(openssl rand -hex 32)"
+  --from-literal=AGENT_API_KEY="$(openssl rand -hex 32)" \
+  --from-literal=ANTHROPIC_API_KEY="$SLUICE_API_KEY"
 ```
 
 ## Cluster manifests
@@ -118,12 +132,17 @@ spec:
             - name: AGENT_EXTERNAL_URL
               value: https://decliner-agent.donkeywork.dev
             - name: ANTHROPIC_BASE_URL
-              value: https://ollama.donkeywork.dev
+              value: https://sluice.donkeywork.dev
             - name: AGENT_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: decliner-secrets
                   key: AGENT_API_KEY
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: decliner-secrets
+                  key: ANTHROPIC_API_KEY
           readinessProbe:
             httpGet: { path: /.well-known/agent-card.json, port: 8420 }
             initialDelaySeconds: 5
@@ -165,12 +184,17 @@ spec:
             - name: AGENT_EXTERNAL_URL
               value: https://polyglot-agent.donkeywork.dev
             - name: ANTHROPIC_BASE_URL
-              value: https://ollama.donkeywork.dev
+              value: https://sluice.donkeywork.dev
             - name: AGENT_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: polyglot-translator-secrets
                   key: AGENT_API_KEY
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: polyglot-translator-secrets
+                  key: ANTHROPIC_API_KEY
           readinessProbe:
             httpGet: { path: /.well-known/agent-card.json, port: 8420 }
             initialDelaySeconds: 5
@@ -208,9 +232,13 @@ operator (or that tool) needs to apply once the images are pushed:
       and the polyglot equivalent after the first push.
 - [ ] Ensure namespace `a2a-explorer` exists on attic
       (`kubectl create namespace a2a-explorer` if not).
-- [ ] Confirm `gemma3:4b` is pulled and reachable on
-      `https://ollama.donkeywork.dev`.
-- [ ] Generate and apply the two `*-secrets` Kubernetes secrets.
+- [ ] Confirm `https://sluice.donkeywork.dev/v1/messages` is reachable
+      and that the issued Sluice key has `claude-haiku-4-5` routing
+      enabled (the `route-claude-models-to-anthropic` rule, which ships
+      by default).
+- [ ] Generate and apply the two `*-secrets` Kubernetes secrets — each
+      must carry both `AGENT_API_KEY` (random) and `ANTHROPIC_API_KEY`
+      (the Sluice `sk_live_…` token).
 - [ ] Apply the Deployment + Service manifests above into the
       `a2a-explorer` namespace.
 - [ ] Wait for both pods to be ready and verify

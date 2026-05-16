@@ -12,7 +12,7 @@ ENV AGENT_DATA_DIR=/data \
     AGENT_CONFIG=/app/agent.yaml \
     AGENT_HOST=0.0.0.0 \
     AGENT_PORT=8420 \
-    AGENT_MODEL=gemma3:4b
+    AGENT_MODEL=claude-haiku-4-5
 
 EXPOSE 8420
 
