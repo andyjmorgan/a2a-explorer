@@ -2,13 +2,12 @@
 
 Two reference [Agentlings](https://github.com/andyjmorgan/DonkeyWork-Agentlings)
 agents wired up for deployment to the **attic** k3s cluster. Both run on
-`claude-haiku-4-5` routed through the **Sluice Gateway** at
+`qwen2.5-coder:7b` routed through the **Sluice Gateway** at
 `https://sluice.donkeywork.dev`. Sluice is a multi-provider LLM proxy
 running on the office cluster; it exposes an Anthropic-compatible
-`/v1/messages` endpoint and dispatches `claude-*` model names to the real
-Anthropic API using its own upstream credentials, so the agentling pods
-never see (or need) an Anthropic key directly — they only need a Sluice
-API key.
+`/v1/messages` endpoint and, by routing-rule, dispatches `qwen2.5-coder:7b`
+to the local Ollama instance — so the agentling pods only need a Sluice
+API key and never reach out to a paid upstream.
 
 ## Agents
 
@@ -70,12 +69,12 @@ A few notes carried over from the
 - The framework only speaks the Anthropic Messages protocol. The env
   var that points it at a different host is **`ANTHROPIC_BASE_URL`**
   (confirmed in the framework's `config.py` and README). Set it to
-  `https://sluice.donkeywork.dev` and pair with `AGENT_MODEL=claude-haiku-4-5`
-  — Sluice exposes `/v1/messages` and routes `claude-*` names to
-  `api.anthropic.com` via its own upstream credentials. The Anthropic
-  SDK sends the per-pod Sluice token in the `x-api-key` header (sourced
-  from `ANTHROPIC_API_KEY`), which Sluice validates against its issued
-  keys — the real Anthropic key never leaves the gateway.
+  `https://sluice.donkeywork.dev` and pair with
+  `AGENT_MODEL=qwen2.5-coder:7b` — Sluice exposes `/v1/messages` and
+  routes that model name to the local Ollama instance via its own
+  upstream config. The Anthropic SDK sends the per-pod Sluice token in
+  the `x-api-key` header (sourced from `ANTHROPIC_API_KEY`), which
+  Sluice validates against its issued keys.
 - `sleep.enabled: false` is already set in both YAMLs because Ollama
   has no batches API. Don't flip it on.
 - Default port is `8420`.
@@ -90,7 +89,7 @@ Both agents need the same shape:
 | `AGENT_EXTERNAL_URL` | `https://decliner-agent.donkeywork.dev` or `https://polyglot-agent.donkeywork.dev` | Deployment env (per-agent) |
 | `ANTHROPIC_BASE_URL` | `https://sluice.donkeywork.dev` | Deployment env |
 | `ANTHROPIC_API_KEY` | Sluice-issued Bearer key (`sk_live_…`) — passes upstream auth at the gateway | Secret |
-| `AGENT_MODEL` | `claude-haiku-4-5` | Already baked in via the Dockerfile, override if needed |
+| `AGENT_MODEL` | `qwen2.5-coder:7b` | Already baked in via the Dockerfile, override if needed |
 | `AGENT_LLM_BACKEND` | `anthropic` (default — Anthropic Messages protocol, terminated by Sluice rather than `api.anthropic.com`) | Default, no override |
 
 Both keys belong in a Kubernetes secret. Export `SLUICE_API_KEY` first
@@ -233,9 +232,10 @@ operator (or that tool) needs to apply once the images are pushed:
 - [ ] Ensure namespace `a2a-explorer` exists on attic
       (`kubectl create namespace a2a-explorer` if not).
 - [ ] Confirm `https://sluice.donkeywork.dev/v1/messages` is reachable
-      and that the issued Sluice key has `claude-haiku-4-5` routing
-      enabled (the `route-claude-models-to-anthropic` rule, which ships
-      by default).
+      and that the issued Sluice key has the `qwen2.5-coder:7b` rule
+      (routes to the local Ollama). Smoke-test:
+      `curl -sS https://sluice.donkeywork.dev/v1/messages -H "x-api-key: $SLUICE_API_KEY" -H "anthropic-version: 2023-06-01" -H "content-type: application/json" -d '{"model":"qwen2.5-coder:7b","max_tokens":16,"messages":[{"role":"user","content":"ping"}]}'`
+      — expect HTTP 200 with `"model":"qwen2.5-coder:7b"` in the response.
 - [ ] Generate and apply the two `*-secrets` Kubernetes secrets — each
       must carry both `AGENT_API_KEY` (random) and `ANTHROPIC_API_KEY`
       (the Sluice `sk_live_…` token).
